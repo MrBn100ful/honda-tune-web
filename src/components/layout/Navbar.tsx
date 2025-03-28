@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Settings, Upload, Circle, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface NavbarProps {
   isConnected: boolean;
@@ -13,6 +13,7 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
   const [baudRate, setBaudRate] = useState("9600");
   const [rtpType, setRtpType] = useState("Cobra RTP");
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showFlashWarning, setShowFlashWarning] = useState(false);
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -28,6 +29,12 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     onConnectionChange(false);
     setIsConnecting(false);
+  };
+
+  const handleFlashClick = () => {
+    if (!isConnected) {
+      setShowFlashWarning(true);
+    }
   };
 
   return (
@@ -46,15 +53,36 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-          disabled={!isConnected}
-        >
-          <Upload size={16} className="mr-2" />
-          Flash EEPROM
-        </Button>
+        <Dialog open={showFlashWarning} onOpenChange={setShowFlashWarning}>
+          <DialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleFlashClick}
+              className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+            >
+              <Upload size={16} className="mr-2" />
+              Flash EEPROM
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-honda-dark border-honda-gray">
+            <DialogHeader>
+              <DialogTitle className="text-honda-light">Not Connected</DialogTitle>
+              <DialogDescription className="text-honda-light/70">
+                Please connect to the ECU before attempting to flash the EEPROM.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowFlashWarning(false)}
+                className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Button 
           variant="outline" 
           size="sm" 
