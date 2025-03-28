@@ -220,87 +220,88 @@ const FuelMap = () => {
           {/* 2D Table View */}
           <div className="overflow-auto">
             <div className="mb-2 text-sm font-medium text-honda-light">2D Table View</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="grid-cell grid-header">RPM / Load ({pressureUnit})</th>
-                      {rpm.map((r, idx) => (
-                        <th key={idx} className="grid-cell grid-header">{r}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mapData.map((row, rowIdx) => (
-                      <tr key={rowIdx}>
-                        <td className="grid-cell grid-header">{displayedLoad[rowIdx].toFixed(0)}</td>
-                        {row.map((value, colIdx) => (
-                          <td 
-                            key={colIdx} 
-                            className={`grid-cell ${getCellColorClass(value)} ${
-                              selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''
-                            }`}
-                            onClick={() => handleCellClick(rowIdx, colIdx)}
-                          >
-                            {value}
-                          </td>
-                        ))}
-                      </tr>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="grid-cell grid-header">RPM / Load ({pressureUnit})</th>
+                  {rpm.map((r, idx) => (
+                    <th key={idx} className="grid-cell grid-header">{r}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {mapData.map((row, rowIdx) => (
+                  <tr key={rowIdx}>
+                    <td className="grid-cell grid-header">{displayedLoad[rowIdx].toFixed(0)}</td>
+                    {row.map((value, colIdx) => (
+                      <td 
+                        key={colIdx} 
+                        className={`grid-cell ${getCellColorClass(value)} ${
+                          selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''
+                        }`}
+                        onClick={() => handleCellClick(rowIdx, colIdx)}
+                      >
+                        {value}
+                      </td>
                     ))}
-                  </tbody>
-                </table>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Cell Editor */}
+          <div className="bg-honda-gray p-4 rounded-md">
+            <div className="text-sm font-medium text-honda-light mb-4">Cell Editor</div>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => adjustValue(-1)}
+                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                >
+                  -1
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => adjustValue(-0.1)}
+                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                >
+                  -0.1
+                </Button>
+                <Input
+                  type="number"
+                  value={selectedCell ? mapData[selectedCell.row][selectedCell.col] : ''}
+                  onChange={(e) => {
+                    if (!selectedCell) return;
+                    const newMapData = [...mapData];
+                    newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
+                    setMapData(newMapData);
+                  }}
+                  className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
+                  placeholder="Value"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => adjustValue(0.1)}
+                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                >
+                  +0.1
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => adjustValue(1)}
+                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                >
+                  +1
+                </Button>
               </div>
-              <div className="flex flex-col gap-4">
-                <div className="text-sm font-medium text-honda-light">Cell Editor</div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => adjustValue(-1)}
-                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                  >
-                    -1
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => adjustValue(-0.1)}
-                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                  >
-                    -0.1
-                  </Button>
-                  <Input
-                    type="number"
-                    value={selectedCell ? mapData[selectedCell.row][selectedCell.col] : ''}
-                    onChange={(e) => {
-                      const newMapData = [...mapData];
-                      newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                      setMapData(newMapData);
-                    }}
-                    className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
-                    placeholder="Value"
-                  />
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => adjustValue(0.1)}
-                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                  >
-                    +0.1
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => adjustValue(1)}
-                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                  >
-                    +1
-                  </Button>
-                </div>
-                <div className="text-xs text-honda-light/70">
-                  Selected: {selectedCell ? `RPM: ${rpm[selectedCell.col]}, Load: ${displayedLoad[selectedCell.row].toFixed(0)} ${pressureUnit}` : 'No cell selected'}
-                </div>
+              <div className="text-xs text-honda-light/70">
+                Selected: {selectedCell ? `RPM: ${rpm[selectedCell.col]}, Load: ${displayedLoad[selectedCell.row].toFixed(0)} ${pressureUnit}` : 'No cell selected'}
               </div>
             </div>
           </div>
