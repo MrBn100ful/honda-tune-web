@@ -1,6 +1,5 @@
-
 import React from 'react';
-import Header from './Header';
+import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 
 interface LayoutProps {
@@ -10,7 +9,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="h-screen flex flex-col">
-      <Header />
+      <Navbar />
       <main className="flex-1 flex overflow-hidden">
         <Sidebar />
         <div className="flex-1 overflow-auto p-4">
