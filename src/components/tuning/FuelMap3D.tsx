@@ -24,28 +24,37 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     scene.background = new THREE.Color(0x1a1a1a); // Dark background
     sceneRef.current = scene;
 
-    // Camera setup
+    // Camera setup with better initial position
     const camera = new THREE.PerspectiveCamera(
-      75,
+      60, // Reduced FOV for better perspective
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       1000
     );
-    camera.position.set(2, 2, 2); // Closer position for better zoom
+    camera.position.set(3, 3, 3); // Adjusted initial position
+    camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
-    // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Renderer setup with better quality
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true
+    });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Controls setup
+    // Controls setup with improved settings
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 1; // Minimum zoom distance
-    controls.maxDistance = 5; // Maximum zoom distance
+    controls.screenSpacePanning = true;
+    controls.minDistance = 2; // Minimum zoom distance
+    controls.maxDistance = 10; // Maximum zoom distance
+    controls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation
+    controls.minPolarAngle = 0; // Prevent going below the surface
+    controls.target.set(0, 0, 0);
     controlsRef.current = controls;
 
     // Create geometry
@@ -59,17 +68,23 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     scene.add(mesh);
     meshRef.current = mesh;
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    // Improved lighting setup
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
     directionalLight.position.set(5, 5, 5);
     scene.add(directionalLight);
 
-    // Animation loop
+    // Add a second directional light for better illumination
+    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    directionalLight2.position.set(-5, -5, -5);
+    scene.add(directionalLight2);
+
+    // Animation loop with improved performance
+    let frameId: number;
     const animate = () => {
-      requestAnimationFrame(animate);
+      frameId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     };
@@ -77,6 +92,9 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
 
     // Cleanup
     return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement);
       }
@@ -91,7 +109,7 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     const rows = mapData.length;
     const cols = mapData[0].length;
 
-    // Create vertices
+    // Create vertices with improved scaling
     const vertices: number[] = [];
     const colors: number[] = [];
     const indices: number[] = [];
@@ -104,13 +122,14 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
       for (let j = 0; j < cols; j++) {
         const x = (j / (cols - 1)) * 2 - 1;
         const y = (i / (rows - 1)) * 2 - 1;
-        const z = ((mapData[i][j] - minValue) / (maxValue - minValue)) * 2;
+        const z = ((mapData[i][j] - minValue) / (maxValue - minValue)) * 1.5; // Reduced height for better visualization
 
         vertices.push(x, y, z);
 
-        // Color based on value
+        // Improved color mapping
+        const normalizedValue = (mapData[i][j] - minValue) / (maxValue - minValue);
         const color = new THREE.Color();
-        color.setHSL((mapData[i][j] - minValue) / (maxValue - minValue), 1, 0.5);
+        color.setHSL(normalizedValue * 0.3, 1, 0.5); // Adjusted hue range for better color distribution
         colors.push(color.r, color.g, color.b);
 
         // Create triangles
@@ -126,25 +145,26 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
       }
     }
 
-    // Update geometry
+    // Update geometry with improved attributes
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    // Update material
+    // Update material with improved appearance
     const material = new THREE.MeshPhongMaterial({
       vertexColors: true,
       wireframe: true,
       side: THREE.DoubleSide,
+      shininess: 30,
     });
 
     meshRef.current.geometry = geometry;
     meshRef.current.material = material;
   }, [mapData, rpm, load]);
 
-  // Handle window resize
+  // Handle window resize with improved performance
   useEffect(() => {
     const handleResize = () => {
       if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
@@ -155,6 +175,7 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
       cameraRef.current.aspect = width / height;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(width, height);
+      rendererRef.current.setPixelRatio(window.devicePixelRatio);
     };
 
     window.addEventListener('resize', handleResize);
