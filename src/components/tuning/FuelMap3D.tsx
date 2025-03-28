@@ -37,8 +37,7 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
 
     // Renderer setup with better quality
     const renderer = new THREE.WebGLRenderer({ 
-      antialias: true,
-      alpha: true
+      antialias: true
     });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -61,7 +60,6 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     const geometry = new THREE.PlaneGeometry(1, 1);
     const material = new THREE.MeshPhongMaterial({
       color: 0x00ff00,
-      wireframe: true,
       side: THREE.DoubleSide,
     });
     const mesh = new THREE.Mesh(geometry, material);
@@ -152,12 +150,13 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
-    // Update material with improved appearance
+    // Update material with solid faces
     const material = new THREE.MeshPhongMaterial({
       vertexColors: true,
-      wireframe: true,
       side: THREE.DoubleSide,
       shininess: 30,
+      flatShading: true,
+      specular: new THREE.Color(0x444444)
     });
 
     meshRef.current.geometry = geometry;
