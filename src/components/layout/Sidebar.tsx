@@ -66,11 +66,13 @@ const Sidebar = ({ isConnected }: SidebarProps) => {
           {data.value.toFixed(1)}
           <span className="ml-1 text-xs text-honda-light/50">{data.unit}</span>
         </span>
-        <div className="w-16 h-4 bg-honda-gray rounded-full overflow-hidden">
+        <div className="w-16 h-4 bg-honda-gray rounded-full overflow-hidden flex-shrink-0">
           <div 
             className="h-full bg-honda-accent/50 transition-all duration-300"
             style={{ 
-              width: `${((data.value - data.min) / (data.max - data.min)) * 100}%`
+              width: `${((data.value - data.min) / (data.max - data.min)) * 100}%`,
+              minWidth: '0%',
+              maxWidth: '100%'
             }}
           />
         </div>

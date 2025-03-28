@@ -69,7 +69,7 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
             <DialogHeader>
               <DialogTitle className="text-honda-light">Not Connected</DialogTitle>
               <DialogDescription className="text-honda-light/70">
-                Please connect to the ECU before attempting to flash the EEPROM.
+                Please connect to the EEPROM programer before attempting to flash the EEPROM.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
