@@ -124,21 +124,21 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
 
         vertices.push(x, y, z);
 
-        // Improved color mapping
+        // Improved color mapping with higher saturation
         const normalizedValue = (mapData[i][j] - minValue) / (maxValue - minValue);
         const color = new THREE.Color();
         
-        // Create a gradual color scale from green to red
+        // Create a gradual color scale from green to red with high saturation
         if (normalizedValue < 0.2) {
-          color.setHSL(0.3, 1, 0.5); // Green
+          color.setHSL(0.3, 1, 0.4); // Bright Green
         } else if (normalizedValue < 0.4) {
-          color.setHSL(0.25, 1, 0.5); // Light Green
+          color.setHSL(0.25, 1, 0.45); // Bright Light Green
         } else if (normalizedValue < 0.6) {
-          color.setHSL(0.15, 1, 0.5); // Yellow
+          color.setHSL(0.15, 1, 0.5); // Bright Yellow
         } else if (normalizedValue < 0.8) {
-          color.setHSL(0.05, 1, 0.5); // Orange
+          color.setHSL(0.05, 1, 0.45); // Bright Orange
         } else {
-          color.setHSL(0, 1, 0.5); // Red
+          color.setHSL(0, 1, 0.4); // Bright Red
         }
         
         colors.push(color.r, color.g, color.b);
