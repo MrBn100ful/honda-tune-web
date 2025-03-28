@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,10 +10,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Save, RotateCcw } from "lucide-react";
 
 const TuningSettings = () => {
+  // General settings
   const [injectorSize, setInjectorSize] = useState(440);
   const [popcornMode, setPopcornMode] = useState(false);
   const [launchControl, setLaunchControl] = useState(true);
   const [launchRpm, setLaunchRpm] = useState(4200);
+  const [revLimiter, setRevLimiter] = useState(8600);
+  const [idleRpm, setIdleRpm] = useState(850);
+  
+  // Fuel settings
+  const [targetAfrCruise, setTargetAfrCruise] = useState(14.7);
+  const [targetAfrWot, setTargetAfrWot] = useState(12.2);
+  const [fuelPressure, setFuelPressure] = useState(45);
+  
+  // Ignition settings
+  const [baseTiming, setBaseTiming] = useState(16);
+  const [knockRetard, setKnockRetard] = useState(4);
+  const [popcornRetard, setPopcornRetard] = useState(12);
+  
+  // Launch control settings
+  const [launchFuelEnrichment, setLaunchFuelEnrichment] = useState(15);
+  const [launchTimingRetard, setLaunchTimingRetard] = useState(8);
   
   return (
     <Card className="w-full h-full bg-honda-dark border-honda-gray">
@@ -40,7 +56,7 @@ const TuningSettings = () => {
             <TabsTrigger value="launch">Launch Control</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="general" className="space-y-4 mt-4">
+          <TabsContent value="general">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <div>
@@ -109,14 +125,15 @@ const TuningSettings = () => {
                   <Label className="text-honda-light">Rev Limiter (RPM)</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      defaultValue={[8600]}
+                      value={[revLimiter]}
                       max={9500}
                       min={6000}
                       step={100}
+                      onValueChange={(value) => setRevLimiter(value[0])}
                       className="flex-1"
                     />
                     <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      8600
+                      {revLimiter}
                     </div>
                   </div>
                 </div>
@@ -125,14 +142,15 @@ const TuningSettings = () => {
                   <Label className="text-honda-light">Idle RPM</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      defaultValue={[850]}
+                      value={[idleRpm]}
                       max={1500}
                       min={600}
                       step={50}
+                      onValueChange={(value) => setIdleRpm(value[0])}
                       className="flex-1"
                     />
                     <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      850
+                      {idleRpm}
                     </div>
                   </div>
                 </div>
@@ -148,7 +166,7 @@ const TuningSettings = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="fuel" className="space-y-4 mt-4">
+          <TabsContent value="fuel">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <div>
@@ -172,14 +190,15 @@ const TuningSettings = () => {
                   <Label htmlFor="target-afr" className="text-honda-light">Target AFR (Cruise)</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      defaultValue={[14.7]}
+                      value={[targetAfrCruise]}
                       max={16}
                       min={13}
                       step={0.1}
+                      onValueChange={(value) => setTargetAfrCruise(value[0])}
                       className="flex-1"
                     />
                     <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      14.7
+                      {targetAfrCruise}
                     </div>
                   </div>
                 </div>
@@ -188,14 +207,15 @@ const TuningSettings = () => {
                   <Label htmlFor="target-afr-wot" className="text-honda-light">Target AFR (WOT)</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      defaultValue={[12.2]}
+                      value={[targetAfrWot]}
                       max={14}
                       min={11}
                       step={0.1}
+                      onValueChange={(value) => setTargetAfrWot(value[0])}
                       className="flex-1"
                     />
                     <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      12.2
+                      {targetAfrWot}
                     </div>
                   </div>
                 </div>
@@ -204,12 +224,19 @@ const TuningSettings = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="fuel-pressure" className="text-honda-light">Fuel Pressure (psi)</Label>
-                  <Input 
-                    id="fuel-pressure" 
-                    type="number" 
-                    defaultValue="45" 
-                    className="bg-honda-gray border-honda-gray"
-                  />
+                  <div className="flex items-center gap-4">
+                    <Slider
+                      value={[fuelPressure]}
+                      max={60}
+                      min={30}
+                      step={1}
+                      onValueChange={(value) => setFuelPressure(value[0])}
+                      className="flex-1"
+                    />
+                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                      {fuelPressure}
+                    </div>
+                  </div>
                 </div>
                 
                 <div>
@@ -244,14 +271,15 @@ const TuningSettings = () => {
                   <Label htmlFor="timing-base" className="text-honda-light">Base Timing (degrees)</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      defaultValue={[16]}
+                      value={[baseTiming]}
                       max={25}
                       min={10}
                       step={1}
+                      onValueChange={(value) => setBaseTiming(value[0])}
                       className="flex-1"
                     />
                     <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      16°
+                      {baseTiming}°
                     </div>
                   </div>
                 </div>
@@ -260,14 +288,15 @@ const TuningSettings = () => {
                   <Label htmlFor="knock-retard" className="text-honda-light">Knock Retard (degrees)</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      defaultValue={[4]}
+                      value={[knockRetard]}
                       max={10}
                       min={1}
                       step={0.5}
+                      onValueChange={(value) => setKnockRetard(value[0])}
                       className="flex-1"
                     />
                     <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      4°
+                      {knockRetard}°
                     </div>
                   </div>
                 </div>
@@ -295,14 +324,15 @@ const TuningSettings = () => {
                     <Label htmlFor="popcorn-retard" className="text-honda-light">Popcorn Mode Retard (degrees)</Label>
                     <div className="flex items-center gap-4">
                       <Slider
-                        defaultValue={[12]}
+                        value={[popcornRetard]}
                         max={20}
                         min={5}
                         step={1}
+                        onValueChange={(value) => setPopcornRetard(value[0])}
                         className="flex-1"
                       />
                       <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                        12°
+                        {popcornRetard}°
                       </div>
                     </div>
                   </div>
@@ -311,7 +341,7 @@ const TuningSettings = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="launch" className="space-y-4 mt-4">
+          <TabsContent value="launch">
             <div className="flex items-center space-x-2 mb-4">
               <Switch 
                 id="launch-control" 
@@ -345,14 +375,15 @@ const TuningSettings = () => {
                     <Label htmlFor="launch-fuel" className="text-honda-light">Launch Fuel Enrichment (%)</Label>
                     <div className="flex items-center gap-4">
                       <Slider
-                        defaultValue={[15]}
+                        value={[launchFuelEnrichment]}
                         max={30}
                         min={0}
                         step={1}
+                        onValueChange={(value) => setLaunchFuelEnrichment(value[0])}
                         className="flex-1"
                       />
                       <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                        15%
+                        {launchFuelEnrichment}%
                       </div>
                     </div>
                   </div>
@@ -363,14 +394,15 @@ const TuningSettings = () => {
                     <Label htmlFor="launch-retard" className="text-honda-light">Launch Timing Retard (degrees)</Label>
                     <div className="flex items-center gap-4">
                       <Slider
-                        defaultValue={[8]}
+                        value={[launchTimingRetard]}
                         max={15}
                         min={0}
                         step={1}
+                        onValueChange={(value) => setLaunchTimingRetard(value[0])}
                         className="flex-1"
                       />
                       <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                        8°
+                        {launchTimingRetard}°
                       </div>
                     </div>
                   </div>
