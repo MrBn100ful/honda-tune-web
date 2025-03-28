@@ -163,9 +163,6 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
 
   return (
     <div ref={containerRef} className="w-full h-[400px] bg-honda-dark rounded-lg overflow-hidden">
-      <div className="absolute top-4 left-4 text-honda-light text-sm">
-        <div>RPM: X-axis</div>
-      </div>
     </div>
   );
 };
