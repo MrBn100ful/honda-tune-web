@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -94,6 +93,12 @@ const convertUnits = (value: number, fromUnit: string, toUnit: string): number =
 };
 
 const { rpm, load, data } = generateMapData();
+
+const getCellColorClass = (value: number) => {
+  if (value < 33) return 'cell-value-low';
+  if (value < 66) return 'cell-value-medium';
+  return 'cell-value-high';
+};
 
 const FuelMap = () => {
   const [mapData, setMapData] = useState(data);
@@ -202,7 +207,9 @@ const FuelMap = () => {
                     {row.map((value, colIdx) => (
                       <td 
                         key={colIdx} 
-                        className={`grid-cell ${selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''}`}
+                        className={`grid-cell ${getCellColorClass(value)} ${
+                          selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''
+                        }`}
                         onClick={() => handleCellClick(rowIdx, colIdx)}
                       >
                         {value}

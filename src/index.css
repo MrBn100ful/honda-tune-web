@@ -99,6 +99,12 @@
     @apply bg-honda-red/20 border-honda-red;
   }
   
+  /* Value-based cell colors */
+  .cell-value-low {
+    @apply bg-blue-900/50;
+  }
+  
+  .cell-value-medium {
   /* Menu styles */
   .menu-item {
     @apply text-white hover:text-honda-red;
