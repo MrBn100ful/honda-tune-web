@@ -2,93 +2,96 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 @layer base {
   :root {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 95%;
-
-    --card: 0 0% 13%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 0 0% 13%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 0 83% 53%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 80% 56%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 60%;
-
-    --accent: 210 80% 56%;
-    --accent-foreground: 0 0% 100%;
-
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+ 
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+ 
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+ 
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+ 
+    --primary: 220.9 39.3% 11%;
+    --primary-foreground: 210 20% 98%;
+ 
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+ 
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220.9 39.3% 11%;
+ 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 0 83% 53%;
-
+    --destructive-foreground: 210 20% 98%;
+ 
+    --ring: 217.9 10.6% 64.9%;
+ 
     --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --honda-red: 0 100% 40%;
+    --honda-gray: 220 13% 18%;
+    --honda-dark: 220 13% 12%;
+    --honda-light: 220 13% 85%;
+  }
+ 
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+ 
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+ 
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+ 
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+ 
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+ 
+    --primary: 210 20% 98%;
+    --primary-foreground: 220.9 39.3% 11%;
+ 
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+ 
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+ 
+    --ring: 215 27.9% 16.9%;
   }
 }
-
+ 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-honda-dark text-foreground;
+    @apply bg-background text-foreground;
   }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  
+  /* Honda ECU tuning specific styles */
+  .grid-cell {
+    @apply px-2 py-1 text-center text-sm border border-honda-gray;
   }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-honda-dark;
+  
+  .grid-header {
+    @apply bg-honda-gray text-honda-light font-semibold;
   }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-honda-gray rounded;
+  
+  .grid-highlight {
+    @apply bg-honda-red/20 border-honda-red;
   }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-honda-red;
-  }
-}
-
-.grid-cell {
-  @apply p-2 text-center border border-honda-gray bg-honda-dark hover:bg-honda-gray transition-colors cursor-pointer;
-}
-
-.grid-header {
-  @apply font-bold bg-honda-gray text-honda-light;
-}
-
-.grid-highlight {
-  @apply bg-honda-red/20;
-}
-
-.data-value {
-  @apply font-mono text-sm;
-}
-
-.blinking-dot {
-  @apply w-2 h-2 bg-honda-red rounded-full animate-pulse-red inline-block mr-1;
 }

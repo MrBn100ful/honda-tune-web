@@ -12,7 +12,7 @@ const Index = () => {
   return (
     <Layout>
       <Tabs value={activeView} onValueChange={setActiveView} className="w-full h-[calc(100vh-64px)]">
-        <TabsList className="hidden">
+        <TabsList className="mb-4">
           <TabsTrigger value="maps">Maps</TabsTrigger>
           <TabsTrigger value="datalogging">Datalogging</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
