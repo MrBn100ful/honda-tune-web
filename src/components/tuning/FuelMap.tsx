@@ -12,7 +12,6 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
 // Sample data for the fuel map
@@ -97,8 +96,13 @@ const convertUnits = (value: number, fromUnit: string, toUnit: string): number =
 const { rpm, load, data } = generateMapData();
 
 const getCellColorClass = (value: number) => {
-  if (value < 33) return 'cell-value-low';
-  if (value < 66) return 'cell-value-medium';
+  const minValue = Math.min(...data.flat());
+  const maxValue = Math.max(...data.flat());
+  const range = maxValue - minValue;
+  const normalizedValue = (value - minValue) / range;
+  
+  if (normalizedValue < 0.33) return 'cell-value-low';
+  if (normalizedValue < 0.66) return 'cell-value-medium';
   return 'cell-value-high';
 };
 
@@ -193,8 +197,8 @@ const FuelMap = () => {
           {/* 2D Table View */}
           <div className="overflow-auto">
             <div className="mb-2 text-sm font-medium text-honda-light">2D Table View</div>
-            <div className="flex gap-4">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
@@ -224,50 +228,57 @@ const FuelMap = () => {
                   </tbody>
                 </table>
               </div>
-              {selectedCell && (
-                <div className="w-48 bg-honda-gray/50 p-4 rounded-lg">
-                  <div className="mb-4">
-                    <div className="text-sm text-honda-light/70 mb-1">Selected Cell</div>
-                    <div className="text-honda-light font-mono">
-                      RPM: {rpm[selectedCell.col]} / Load: {displayedLoad[selectedCell.row].toFixed(0)}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <Label htmlFor="cell-value" className="text-honda-light">Value</Label>
-                      <Input
-                        id="cell-value"
-                        type="number"
-                        value={mapData[selectedCell.row][selectedCell.col]}
-                        onChange={(e) => {
-                          const newMapData = [...mapData];
-                          newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                          setMapData(newMapData);
-                        }}
-                        className="bg-honda-dark border-honda-gray text-honda-light"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => adjustValue(-0.1)}
-                        className="flex-1 bg-honda-dark border-honda-gray text-honda-light hover:bg-honda-gray"
-                      >
-                        -0.1
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => adjustValue(0.1)}
-                        className="flex-1 bg-honda-dark border-honda-gray text-honda-light hover:bg-honda-gray"
-                      >
-                        +0.1
-                      </Button>
-                    </div>
-                  </div>
+              <div className="flex flex-col gap-4">
+                <div className="text-sm font-medium text-honda-light">Cell Editor</div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => adjustValue(-1)}
+                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                  >
+                    -1
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => adjustValue(-0.1)}
+                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                  >
+                    -0.1
+                  </Button>
+                  <Input
+                    type="number"
+                    value={selectedCell ? mapData[selectedCell.row][selectedCell.col] : ''}
+                    onChange={(e) => {
+                      const newMapData = [...mapData];
+                      newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
+                      setMapData(newMapData);
+                    }}
+                    className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
+                    placeholder="Value"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => adjustValue(0.1)}
+                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                  >
+                    +0.1
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => adjustValue(1)}
+                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                  >
+                    +1
+                  </Button>
                 </div>
-              )}
+                <div className="text-xs text-honda-light/70">
+                  Selected: {selectedCell ? `RPM: ${rpm[selectedCell.col]}, Load: ${displayedLoad[selectedCell.row].toFixed(0)} ${pressureUnit}` : 'No cell selected'}
+                </div>
+              </div>
             </div>
           </div>
 

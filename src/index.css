@@ -101,15 +101,15 @@
   
   /* Value-based cell colors */
   .cell-value-low {
-    @apply bg-blue-900/50;
+    @apply bg-blue-950/70;
   }
   
   .cell-value-medium {
-    @apply bg-yellow-900/50;
+    @apply bg-blue-900/70;
   }
   
   .cell-value-high {
-    @apply bg-red-900/50;
+    @apply bg-red-900/70;
   }
 
   /* Menu styles */
