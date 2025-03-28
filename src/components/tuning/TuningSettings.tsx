@@ -17,20 +17,65 @@ const TuningSettings = () => {
   const [launchRpm, setLaunchRpm] = useState(4200);
   const [revLimiter, setRevLimiter] = useState(8600);
   const [idleRpm, setIdleRpm] = useState(850);
+  const [ecuType, setEcuType] = useState("p28");
+  const [engineType, setEngineType] = useState("b16a");
+  const [vtecEnabled, setVtecEnabled] = useState(true);
+  const [mapSensor, setMapSensor] = useState("3bar");
+  const [iacEnabled, setIacEnabled] = useState(true);
   
   // Fuel settings
   const [targetAfrCruise, setTargetAfrCruise] = useState(14.7);
   const [targetAfrWot, setTargetAfrWot] = useState(12.2);
   const [fuelPressure, setFuelPressure] = useState(45);
+  const [fuelType, setFuelType] = useState("gasoline");
+  const [accelEnrichment, setAccelEnrichment] = useState(true);
   
   // Ignition settings
   const [baseTiming, setBaseTiming] = useState(16);
   const [knockRetard, setKnockRetard] = useState(4);
   const [popcornRetard, setPopcornRetard] = useState(12);
+  const [knockDetection, setKnockDetection] = useState(true);
+  const [timingComp, setTimingComp] = useState(true);
   
   // Launch control settings
   const [launchFuelEnrichment, setLaunchFuelEnrichment] = useState(15);
   const [launchTimingRetard, setLaunchTimingRetard] = useState(8);
+  const [twoStep, setTwoStep] = useState(true);
+  const [antilag, setAntilag] = useState(false);
+
+  const handleReset = () => {
+    // Reset all values to their defaults
+    setInjectorSize(440);
+    setPopcornMode(false);
+    setLaunchControl(true);
+    setLaunchRpm(4200);
+    setRevLimiter(8600);
+    setIdleRpm(850);
+    setEcuType("p28");
+    setEngineType("b16a");
+    setVtecEnabled(true);
+    setMapSensor("3bar");
+    setIacEnabled(true);
+    setTargetAfrCruise(14.7);
+    setTargetAfrWot(12.2);
+    setFuelPressure(45);
+    setFuelType("gasoline");
+    setAccelEnrichment(true);
+    setBaseTiming(16);
+    setKnockRetard(4);
+    setPopcornRetard(12);
+    setKnockDetection(true);
+    setTimingComp(true);
+    setLaunchFuelEnrichment(15);
+    setLaunchTimingRetard(8);
+    setTwoStep(true);
+    setAntilag(false);
+  };
+
+  const handleSave = () => {
+    // TODO: Implement save functionality
+    console.log("Saving settings...");
+  };
   
   return (
     <Card className="w-full h-full bg-honda-dark border-honda-gray">
@@ -38,10 +83,10 @@ const TuningSettings = () => {
         <div className="flex justify-between items-center">
           <CardTitle className="text-honda-light">Tuning Settings</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleReset}>
               <RotateCcw size={16} className="mr-1" /> Reset
             </Button>
-            <Button variant="default" size="sm" className="bg-honda-red">
+            <Button variant="default" size="sm" className="bg-honda-red" onClick={handleSave}>
               <Save size={16} className="mr-1" /> Save
             </Button>
           </div>
@@ -61,7 +106,7 @@ const TuningSettings = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="ecu-type" className="text-honda-light">ECU Type</Label>
-                  <Select defaultValue="p28">
+                  <Select value={ecuType} onValueChange={setEcuType}>
                     <SelectTrigger id="ecu-type" className="bg-honda-gray border-honda-gray">
                       <SelectValue placeholder="Select ECU Type" />
                     </SelectTrigger>
@@ -75,7 +120,7 @@ const TuningSettings = () => {
                 
                 <div>
                   <Label htmlFor="engine-type" className="text-honda-light">Engine Type</Label>
-                  <Select defaultValue="b16a">
+                  <Select value={engineType} onValueChange={setEngineType}>
                     <SelectTrigger id="engine-type" className="bg-honda-gray border-honda-gray">
                       <SelectValue placeholder="Select Engine Type" />
                     </SelectTrigger>
@@ -91,7 +136,8 @@ const TuningSettings = () => {
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="vtec" 
-                    checked={true}
+                    checked={vtecEnabled}
+                    onCheckedChange={setVtecEnabled}
                   />
                   <Label htmlFor="vtec" className="text-honda-light">VTEC Enabled</Label>
                 </div>
@@ -109,7 +155,7 @@ const TuningSettings = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="map-sensor" className="text-honda-light">MAP Sensor Type</Label>
-                  <Select defaultValue="3bar">
+                  <Select value={mapSensor} onValueChange={setMapSensor}>
                     <SelectTrigger id="map-sensor" className="bg-honda-gray border-honda-gray">
                       <SelectValue placeholder="Select MAP Sensor" />
                     </SelectTrigger>
@@ -158,7 +204,8 @@ const TuningSettings = () => {
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="iac" 
-                    checked={true}
+                    checked={iacEnabled}
+                    onCheckedChange={setIacEnabled}
                   />
                   <Label htmlFor="iac" className="text-honda-light">IAC Control Enabled</Label>
                 </div>
@@ -241,7 +288,7 @@ const TuningSettings = () => {
                 
                 <div>
                   <Label htmlFor="fuel-type" className="text-honda-light">Fuel Type</Label>
-                  <Select defaultValue="gasoline">
+                  <Select value={fuelType} onValueChange={setFuelType}>
                     <SelectTrigger id="fuel-type" className="bg-honda-gray border-honda-gray">
                       <SelectValue placeholder="Select Fuel Type" />
                     </SelectTrigger>
@@ -256,7 +303,8 @@ const TuningSettings = () => {
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="accel-enrichment" 
-                    checked={true}
+                    checked={accelEnrichment}
+                    onCheckedChange={setAccelEnrichment}
                   />
                   <Label htmlFor="accel-enrichment" className="text-honda-light">Acceleration Enrichment</Label>
                 </div>
@@ -306,7 +354,8 @@ const TuningSettings = () => {
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="knock-detection" 
-                    checked={true}
+                    checked={knockDetection}
+                    onCheckedChange={setKnockDetection}
                   />
                   <Label htmlFor="knock-detection" className="text-honda-light">Knock Detection</Label>
                 </div>
@@ -314,7 +363,8 @@ const TuningSettings = () => {
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="timing-comp" 
-                    checked={true}
+                    checked={timingComp}
+                    onCheckedChange={setTimingComp}
                   />
                   <Label htmlFor="timing-comp" className="text-honda-light">Temperature Compensation</Label>
                 </div>
@@ -410,7 +460,8 @@ const TuningSettings = () => {
                   <div className="flex items-center space-x-2">
                     <Switch 
                       id="two-step" 
-                      checked={true}
+                      checked={twoStep}
+                      onCheckedChange={setTwoStep}
                     />
                     <Label htmlFor="two-step" className="text-honda-light">Enable Two-Step</Label>
                   </div>
@@ -418,7 +469,8 @@ const TuningSettings = () => {
                   <div className="flex items-center space-x-2">
                     <Switch 
                       id="antilag" 
-                      checked={false}
+                      checked={antilag}
+                      onCheckedChange={setAntilag}
                     />
                     <Label htmlFor="antilag" className="text-honda-light">Enable Anti-Lag at Launch</Label>
                   </div>
