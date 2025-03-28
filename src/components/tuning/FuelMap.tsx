@@ -184,17 +184,17 @@ const FuelMap = () => {
                 variant={isVtec ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsVtec(true)}
-                className={`${isVtec ? 'bg-honda-red hover:bg-honda-red/90' : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
+                className={`${isVtec ? 'bg-honda-red hover:bg-honda-red/90 text-white' : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
               >
-                VTEC
+                High Cam
               </Button>
               <Button
                 variant={!isVtec ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsVtec(false)}
-                className={`${!isVtec ? 'bg-honda-gray hover:bg-honda-gray/90' : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
+                className={`${!isVtec ? 'bg-honda-gray hover:bg-honda-gray/90 text-white' : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
               >
-                Non-VTEC
+                Low Cam
               </Button>
             </div>
           </div>
