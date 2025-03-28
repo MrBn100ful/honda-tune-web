@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,7 @@ const FuelMap = () => {
   const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
   const [pressureUnit, setPressureUnit] = useState<'mbar' | 'kPa' | 'psi'>('mbar');
   const [displayedLoad, setDisplayedLoad] = useState(load);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
   
   // Update displayed load when pressure unit changes
   useEffect(() => {
@@ -123,6 +124,25 @@ const FuelMap = () => {
     newMapData[row][col] = parseFloat((newMapData[row][col] + amount).toFixed(1));
     setMapData(newMapData);
   };
+  
+  // Prevent wheel event propagation within the chart container
+  useEffect(() => {
+    const currentRef = chartContainerRef.current;
+    
+    const preventScroll = (e: WheelEvent) => {
+      e.stopPropagation();
+    };
+    
+    if (currentRef) {
+      currentRef.addEventListener('wheel', preventScroll, { passive: false });
+    }
+    
+    return () => {
+      if (currentRef) {
+        currentRef.removeEventListener('wheel', preventScroll);
+      }
+    };
+  }, []);
   
   // Data transformed for 3D visualization
   const data3d = transformDataFor3D(mapData, rpm, load);
@@ -196,7 +216,9 @@ const FuelMap = () => {
           {/* 3D Visualization */}
           <div className="h-full">
             <div className="mb-2 text-sm font-medium text-honda-light">3D Visualization</div>
-            <div className="bg-honda-gray rounded-md h-[calc(100%-24px)] overflow-hidden">
+            <div 
+              ref={chartContainerRef}
+              className="bg-honda-gray rounded-md h-[calc(100%-24px)] overflow-hidden">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={rpm.map((r, idx) => {
@@ -209,7 +231,7 @@ const FuelMap = () => {
                   margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
                 >
                   <XAxis dataKey="rpm" label={{ value: 'RPM', position: 'bottom', offset: 0 }} />
-                  <YAxis label={{ value: 'Value', angle: -90, position: 'left' }} />
+                  <YAxis label={{ value: 'Value', angle: -90, position: 'left' }} domain={[0, 30]} />
                   <Tooltip />
                   {displayedLoad.map((l, i) => (
                     <Area
