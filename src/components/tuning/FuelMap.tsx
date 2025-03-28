@@ -216,10 +216,10 @@ const FuelMap = () => {
         </div>
       </CardHeader>
       <CardContent className="h-[calc(100%-64px)]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
-          {/* 2D Table View */}
-          <div className="overflow-auto">
-            <div className="mb-2 text-sm font-medium text-honda-light">2D Table View</div>
+        <div className="grid grid-cols-1 gap-4 h-full">
+          {/* Table View */}
+          <div className="overflow-auto relative">
+            <div className="mb-2 text-sm font-medium text-honda-light">Table View</div>
             <table className="w-full border-collapse">
               <thead>
                 <tr>
@@ -248,67 +248,68 @@ const FuelMap = () => {
                 ))}
               </tbody>
             </table>
+
+            {/* Cell Editor Panel */}
+            {selectedCell && (
+              <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
+                <div className="text-sm font-medium text-honda-light mb-4">Cell Editor</div>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(-1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      -1
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(-0.1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      -0.1
+                    </Button>
+                    <Input
+                      type="number"
+                      value={mapData[selectedCell.row][selectedCell.col]}
+                      onChange={(e) => {
+                        const newMapData = [...mapData];
+                        newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
+                        setMapData(newMapData);
+                      }}
+                      className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
+                      placeholder="Value"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(0.1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      +0.1
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      +1
+                    </Button>
+                  </div>
+                  <div className="text-xs text-honda-light/70">
+                    Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Cell Editor */}
-          <div className="bg-honda-gray p-4 rounded-md">
-            <div className="text-sm font-medium text-honda-light mb-4">Cell Editor</div>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => adjustValue(-1)}
-                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                >
-                  -1
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => adjustValue(-0.1)}
-                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                >
-                  -0.1
-                </Button>
-                <Input
-                  type="number"
-                  value={selectedCell ? mapData[selectedCell.row][selectedCell.col] : ''}
-                  onChange={(e) => {
-                    if (!selectedCell) return;
-                    const newMapData = [...mapData];
-                    newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                    setMapData(newMapData);
-                  }}
-                  className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
-                  placeholder="Value"
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => adjustValue(0.1)}
-                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                >
-                  +0.1
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => adjustValue(1)}
-                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                >
-                  +1
-                </Button>
-              </div>
-              <div className="text-xs text-honda-light/70">
-                Selected: {selectedCell ? `RPM: ${rpm[selectedCell.col]}, Load: ${displayedLoad[selectedCell.row].toFixed(0)} ${pressureUnit}` : 'No cell selected'}
-              </div>
-            </div>
-          </div>
-
-          {/* 3D Visualization */}
+          {/* Table Visualization */}
           <div className="h-full flex flex-col">
-            <div className="mb-2 text-sm font-medium text-honda-light">3D Visualization</div>
+            <div className="mb-2 text-sm font-medium text-honda-light">Table Visualization</div>
             <div 
               ref={chartContainerRef}
               className="bg-honda-gray rounded-md flex-1 overflow-hidden max-h-[calc(100%-24px)]"
