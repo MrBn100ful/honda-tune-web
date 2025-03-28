@@ -9,7 +9,7 @@ const Header = () => {
     <header className="flex justify-between items-center p-4 bg-honda-gray border-b border-honda-red">
       <div className="flex items-center">
         <h1 className="text-xl font-bold text-honda-light mr-6">
-          <span className="text-honda-red">Honda</span>Tune P28
+          <span className="text-honda-red">Web</span>Tune - ODB1
         </h1>
       </div>
       <div className="flex items-center gap-3">
