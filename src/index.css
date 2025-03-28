@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -7,34 +6,34 @@
  
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
+    --background: 220 13% 8%;
+    --foreground: 210 20% 98%;
  
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
  
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
+    --popover: 220 13% 8%;
+    --popover-foreground: 210 20% 98%;
  
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card: 220 13% 8%;
+    --card-foreground: 210 20% 98%;
  
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
  
-    --primary: 220.9 39.3% 11%;
-    --primary-foreground: 210 20% 98%;
+    --primary: 210 20% 98%;
+    --primary-foreground: 220.9 39.3% 11%;
  
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220.9 39.3% 11%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
  
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
  
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
  
-    --ring: 217.9 10.6% 64.9%;
+    --ring: 215 27.9% 16.9%;
  
     --radius: 0.5rem;
     
@@ -98,6 +97,15 @@
   
   .grid-highlight {
     @apply bg-honda-red/20 border-honda-red;
+  }
+  
+  /* Menu styles */
+  .menu-item {
+    @apply text-white hover:text-honda-red;
+  }
+
+  .menu-section-title {
+    @apply text-white font-semibold;
   }
   
   /* Add blinking dot animation for connection status */

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -36,18 +35,18 @@ import { Zap } from 'lucide-react';
 
 const Sidebar = () => {
   return (
-    <div className="w-60 bg-honda-gray border-r border-honda-gray overflow-hidden hidden md:block">
+    <div className="w-60 bg-honda-dark border-r border-honda-gray overflow-hidden hidden md:block">
       <ScrollArea className="h-full p-3">
         {sections.map((section, index) => (
           <div key={index} className="mb-6">
-            <h3 className="text-sm font-semibold mb-2 text-honda-light px-3">{section.title}</h3>
+            <h3 className="menu-section-title text-sm mb-2 px-3">{section.title}</h3>
             <div className="space-y-1">
               {section.items.map((item, itemIndex) => (
                 <Button 
                   key={itemIndex} 
                   variant="ghost" 
                   size="sm" 
-                  className="w-full justify-start text-honda-light hover:bg-honda-dark hover:text-honda-red"
+                  className="w-full justify-start menu-item hover:bg-honda-gray"
                 >
                   <span className="mr-2">{item.icon}</span>
                   {item.name}
