@@ -199,16 +199,6 @@ const FuelMap = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Select defaultValue="primary">
-              <SelectTrigger className="w-[150px] h-8 text-sm bg-honda-gray border-honda-gray">
-                <SelectValue placeholder="Map Selection" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="primary">Primary Fuel Map</SelectItem>
-                <SelectItem value="secondary">Low RPM Map</SelectItem>
-                <SelectItem value="vtec">VTEC Engagement</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={pressureUnit} onValueChange={(value) => setPressureUnit(value as 'mbar' | 'kPa' | 'psi')}>
               <SelectTrigger className="w-[90px] h-8 text-sm bg-honda-gray border-honda-gray">
                 <SelectValue placeholder="Unit" />
