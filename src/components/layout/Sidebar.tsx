@@ -15,19 +15,22 @@ interface DatalogValue {
   min: number;
   max: number;
   category: string;
+  history: number[];
 }
+
+const MAX_HISTORY_LENGTH = 120; // 2 minutes of data at 1-second intervals
 
 const Sidebar = ({ isConnected }: SidebarProps) => {
   const [values, setValues] = useState<Record<string, DatalogValue>>({
-    rpm: { value: 2450, unit: 'rpm', icon: <Gauge size={14} />, label: 'RPM', min: 0, max: 8000, category: 'Engine' },
-    ect: { value: 185, unit: '°F', icon: <Thermometer size={14} />, label: 'ECT', min: 0, max: 250, category: 'Engine' },
-    map: { value: 12.5, unit: 'psi', icon: <Activity size={14} />, label: 'MAP', min: 0, max: 30, category: 'Engine' },
-    iat: { value: 95, unit: '°F', icon: <Timer size={14} />, label: 'IAT', min: 0, max: 200, category: 'Engine' },
-    afr: { value: 14.7, unit: 'λ', icon: <Droplet size={14} />, label: 'AFR', min: 10, max: 20, category: 'Fuel' },
-    injDuty: { value: 65, unit: '%', icon: <Droplet size={14} />, label: 'Injector Duty', min: 0, max: 100, category: 'Fuel' },
-    timing: { value: 28, unit: '°', icon: <Zap size={14} />, label: 'Timing', min: 0, max: 50, category: 'Ignition' },
-    knock: { value: 2, unit: 'count', icon: <AlertTriangle size={14} />, label: 'Knock', min: 0, max: 10, category: 'Ignition' },
-    tps: { value: 45, unit: '%', icon: <GaugeIcon size={14} />, label: 'TPS', min: 0, max: 100, category: 'Engine' }
+    rpm: { value: 2450, unit: 'rpm', icon: <Gauge size={14} />, label: 'RPM', min: 0, max: 8000, category: 'Engine', history: [] },
+    ect: { value: 185, unit: '°F', icon: <Thermometer size={14} />, label: 'ECT', min: 0, max: 250, category: 'Engine', history: [] },
+    map: { value: 12.5, unit: 'psi', icon: <Activity size={14} />, label: 'MAP', min: 0, max: 30, category: 'Engine', history: [] },
+    iat: { value: 95, unit: '°F', icon: <Timer size={14} />, label: 'IAT', min: 0, max: 200, category: 'Engine', history: [] },
+    afr: { value: 14.7, unit: 'λ', icon: <Droplet size={14} />, label: 'AFR', min: 10, max: 20, category: 'Fuel', history: [] },
+    injDuty: { value: 65, unit: '%', icon: <Droplet size={14} />, label: 'Injector Duty', min: 0, max: 100, category: 'Fuel', history: [] },
+    timing: { value: 28, unit: '°', icon: <Zap size={14} />, label: 'Timing', min: 0, max: 50, category: 'Ignition', history: [] },
+    knock: { value: 2, unit: 'count', icon: <AlertTriangle size={14} />, label: 'Knock', min: 0, max: 10, category: 'Ignition', history: [] },
+    tps: { value: 45, unit: '%', icon: <GaugeIcon size={14} />, label: 'TPS', min: 0, max: 100, category: 'Engine', history: [] }
   });
 
   useEffect(() => {
@@ -40,7 +43,10 @@ const Sidebar = ({ isConnected }: SidebarProps) => {
           const value = newValues[key];
           // Simulate small random changes
           const change = (Math.random() - 0.5) * 2;
-          value.value = Math.max(value.min, Math.min(value.max, value.value + change));
+          const newValue = Math.max(value.min, Math.min(value.max, value.value + change));
+          value.value = newValue;
+          // Add to history
+          value.history = [...value.history, newValue].slice(-MAX_HISTORY_LENGTH);
         });
         return newValues;
       });
@@ -55,10 +61,20 @@ const Sidebar = ({ isConnected }: SidebarProps) => {
         {data.icon}
         <span>{data.label}</span>
       </div>
-      <span className="text-honda-light transition-all duration-300 group-hover:text-honda-accent">
-        {data.value.toFixed(1)}
-        <span className="ml-1 text-xs text-honda-light/50">{data.unit}</span>
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="text-honda-light transition-all duration-300 group-hover:text-honda-accent">
+          {data.value.toFixed(1)}
+          <span className="ml-1 text-xs text-honda-light/50">{data.unit}</span>
+        </span>
+        <div className="w-16 h-4 bg-honda-gray rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-honda-accent/50 transition-all duration-300"
+            style={{ 
+              width: `${((data.value - data.min) / (data.max - data.min)) * 100}%`
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 

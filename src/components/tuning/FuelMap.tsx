@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MinusCircle, Save } from "lucide-react";
+import { PlusCircle, MinusCircle, Save, X, Upload } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -13,6 +13,8 @@ import {
   YAxis
 } from 'recharts';
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // Sample data for the fuel map
 const generateMapData = (isVtec: boolean = false) => {
@@ -112,6 +114,43 @@ const getCellColorClass = (value: number) => {
   return 'cell-value-high';
 };
 
+const CellEditor = ({ value, onSave, onCancel }: CellEditorProps) => {
+  const [inputValue, setInputValue] = useState(value.toString());
+
+  const handleSave = () => {
+    const numValue = parseFloat(inputValue);
+    if (!isNaN(numValue)) {
+      onSave(numValue);
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 bg-honda-dark border-2 border-honda-accent rounded-md p-2 flex flex-col">
+      <div className="flex justify-between items-center mb-2">
+        <Label className="text-xs text-honda-light">Edit Value</Label>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-4 w-4 text-honda-light/70 hover:text-honda-light"
+          onClick={onCancel}
+        >
+          <X size={12} />
+        </Button>
+      </div>
+      <Input
+        type="number"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') handleSave();
+        }}
+        className="h-6 text-xs bg-honda-gray border-honda-gray text-honda-light"
+        autoFocus
+      />
+    </div>
+  );
+};
+
 const FuelMap = () => {
   const [isVtec, setIsVtec] = useState(false);
   const [mapData, setMapData] = useState(data);
@@ -173,6 +212,45 @@ const FuelMap = () => {
   const data3d = transformDataFor3D(mapData, rpm, load);
   const surfaceData = prepareSurfaceData(data3d, rpm.length, load.length);
   
+  const handleSaveMap = () => {
+    const mapData = {
+      name: "Fuel Map",
+      rpm: rpm,
+      load: displayedLoad,
+      data: mapData,
+      vtecEnabled: isVtec,
+      vtecData: data
+    };
+    
+    const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'fuel-map.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleLoadMap = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const mapData = JSON.parse(e.target?.result as string);
+        setIsVtec(mapData.vtecEnabled);
+        setMapData(mapData.data);
+        setDisplayedLoad(mapData.load);
+      } catch (error) {
+        console.error('Error loading map:', error);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <Card className="w-full h-full bg-honda-dark border-honda-gray">
       <CardHeader className="pb-3">
@@ -209,8 +287,42 @@ const FuelMap = () => {
                 <SelectItem value="psi">psi</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" className="h-8 w-8">
-              <Save size={16} />
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                >
+                  <Upload size={16} className="mr-2" />
+                  Load Map
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-honda-dark border-honda-gray">
+                <DialogHeader>
+                  <DialogTitle className="text-honda-light">Load Fuel Map</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-honda-light/70">Select Map File</Label>
+                    <Input
+                      type="file"
+                      accept=".json"
+                      onChange={handleLoadMap}
+                      className="bg-honda-gray border-honda-gray text-honda-light"
+                    />
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveMap}
+              className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+            >
+              <Save size={16} className="mr-2" />
+              Save Map
             </Button>
           </div>
         </div>
@@ -251,59 +363,16 @@ const FuelMap = () => {
 
             {/* Cell Editor Panel */}
             {selectedCell && (
-              <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
-                <div className="text-sm font-medium text-honda-light mb-4">Cell Editor</div>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(-1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      -1
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(-0.1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      -0.1
-                    </Button>
-                    <Input
-                      type="number"
-                      value={mapData[selectedCell.row][selectedCell.col]}
-                      onChange={(e) => {
-                        const newMapData = [...mapData];
-                        newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                        setMapData(newMapData);
-                      }}
-                      className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
-                      placeholder="Value"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(0.1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      +0.1
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      +1
-                    </Button>
-                  </div>
-                  <div className="text-xs text-honda-light/70">
-                    Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
-                  </div>
-                </div>
-              </div>
+              <CellEditor
+                value={mapData[selectedCell.row][selectedCell.col]}
+                onSave={(newValue) => {
+                  const newMapData = [...mapData];
+                  newMapData[selectedCell.row][selectedCell.col] = newValue;
+                  setMapData(newMapData);
+                  setSelectedCell(null);
+                }}
+                onCancel={() => setSelectedCell(null)}
+              />
             )}
           </div>
 

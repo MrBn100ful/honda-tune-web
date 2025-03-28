@@ -11,7 +11,7 @@ interface NavbarProps {
 
 const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
   const [baudRate, setBaudRate] = useState("9600");
-  const [rtpType, setRtpType] = useState("CobreRTP");
+  const [rtpType, setRtpType] = useState("Cobra RTP");
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
@@ -106,7 +106,7 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
                     <SelectValue placeholder="Select RTP type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CobreRTP">CobreRTP</SelectItem>
+                    <SelectItem value="Cobra RTP">Cobra RTP</SelectItem>
                     <SelectItem value="Hondata S300">Hondata S300</SelectItem>
                     <SelectItem value="Neptune RTP">Neptune RTP</SelectItem>
                     <SelectItem value="Chrome RTP">Chrome RTP</SelectItem>
