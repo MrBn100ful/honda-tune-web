@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import FuelMap3D from './FuelMap3D';
 
 // Sample data for the fuel map
 const generateMapData = (isVtec: boolean = false) => {
@@ -328,132 +329,165 @@ const FuelMap = () => {
         </div>
       </CardHeader>
       <CardContent className="h-[calc(100%-64px)]">
-        <div className="grid grid-cols-1 gap-4 h-full">
-          {/* Table View */}
-          <div className="overflow-auto relative">
-            <div className="mb-2 text-sm font-medium text-honda-light">Table View</div>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="grid-cell grid-header">RPM / Load ({pressureUnit})</th>
-                  {rpm.map((r, idx) => (
-                    <th key={idx} className="grid-cell grid-header">{r}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {mapData.map((row, rowIdx) => (
-                  <tr key={rowIdx}>
-                    <td className="grid-cell grid-header">{displayedLoad[rowIdx].toFixed(0)}</td>
-                    {row.map((value, colIdx) => (
-                      <td 
-                        key={colIdx} 
-                        className={`grid-cell ${getCellColorClass(value)} ${
-                          selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''
-                        }`}
-                        onClick={() => handleCellClick(rowIdx, colIdx)}
-                      >
-                        {value}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Cell Editor Panel */}
-            {selectedCell && (
-              <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
-                <div className="text-sm font-medium text-honda-light mb-4">Cell Editor</div>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(-1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      -1
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(-0.1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      -0.1
-                    </Button>
-                    <Input
-                      type="number"
-                      value={mapData[selectedCell.row][selectedCell.col]}
-                      onChange={(e) => {
-                        const newMapData = [...mapData];
-                        newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                        setMapData(newMapData);
-                      }}
-                      className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
-                      placeholder="Value"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(0.1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      +0.1
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      +1
-                    </Button>
-                  </div>
-                  <div className="text-xs text-honda-light/70">
-                    Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <h3 className="text-sm font-medium text-honda-light">2D View</h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsVtec(!isVtec)}
+                    className={`${
+                      isVtec 
+                        ? 'bg-honda-accent/20 border-honda-accent text-honda-accent hover:bg-honda-accent/30' 
+                        : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'
+                    }`}
+                  >
+                    {isVtec ? 'VTEC Enabled' : 'VTEC Disabled'}
+                  </Button>
                 </div>
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      <Upload size={16} className="mr-2" />
+                      Load Map
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-honda-dark border-honda-gray">
+                    <DialogHeader>
+                      <DialogTitle className="text-honda-light">Load Fuel Map</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-honda-light/70">Select Map File</Label>
+                        <Input
+                          type="file"
+                          accept=".json"
+                          onChange={handleLoadMap}
+                          className="bg-honda-gray border-honda-gray text-honda-light"
+                        />
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveMap}
+                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                >
+                  <Save size={16} className="mr-2" />
+                  Save Map
+                </Button>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="overflow-auto relative">
+                <div className="mb-2 text-sm font-medium text-honda-light">Table View</div>
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="grid-cell grid-header">RPM / Load ({pressureUnit})</th>
+                      {rpm.map((r, idx) => (
+                        <th key={idx} className="grid-cell grid-header">{r}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mapData.map((row, rowIdx) => (
+                      <tr key={rowIdx}>
+                        <td className="grid-cell grid-header">{displayedLoad[rowIdx].toFixed(0)}</td>
+                        {row.map((value, colIdx) => (
+                          <td 
+                            key={colIdx} 
+                            className={`grid-cell ${getCellColorClass(value)} ${
+                              selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''
+                            }`}
+                            onClick={() => handleCellClick(rowIdx, colIdx)}
+                          >
+                            {value}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Cell Editor Panel */}
+                {selectedCell && (
+                  <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
+                    <div className="text-sm font-medium text-honda-light mb-4">Cell Editor</div>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => adjustValue(-1)}
+                          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                        >
+                          -1
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => adjustValue(-0.1)}
+                          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                        >
+                          -0.1
+                        </Button>
+                        <Input
+                          type="number"
+                          value={mapData[selectedCell.row][selectedCell.col]}
+                          onChange={(e) => {
+                            const newMapData = [...mapData];
+                            newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
+                            setMapData(newMapData);
+                          }}
+                          className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
+                          placeholder="Value"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => adjustValue(0.1)}
+                          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                        >
+                          +0.1
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => adjustValue(1)}
+                          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                        >
+                          +1
+                        </Button>
+                      </div>
+                      <div className="text-xs text-honda-light/70">
+                        Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Table Visualization */}
-          <div className="h-full flex flex-col">
-            <div className="mb-2 text-sm font-medium text-honda-light">Table Visualization</div>
-            <div 
-              ref={chartContainerRef}
-              className="bg-honda-gray rounded-md flex-1 overflow-hidden max-h-[calc(100%-24px)]"
-              style={{ height: 'calc(100% - 24px)', maxHeight: 'calc(100% - 24px)' }}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={rpm.map((r, idx) => {
-                    const row: any = { rpm: r };
-                    displayedLoad.forEach((l, i) => {
-                      row[`load${i}`] = mapData[i][idx];
-                    });
-                    return row;
-                  })}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
-                >
-                  <XAxis dataKey="rpm" label={{ value: 'RPM', position: 'bottom', offset: 0 }} />
-                  <YAxis label={{ value: 'Value', angle: -90, position: 'left' }} domain={[0, 30]} />
-                  <Tooltip />
-                  {displayedLoad.map((l, i) => (
-                    <Area
-                      key={i}
-                      type="monotone"
-                      dataKey={`load${i}`}
-                      stackId="1"
-                      stroke={`hsl(${200 + i * 20}, 80%, 50%)`}
-                      fill={`hsl(${200 + i * 20}, 80%, 60%)`}
-                    />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-honda-light">3D View</h3>
+            <FuelMap3D 
+              mapData={isVtec ? data : mapData}
+              rpm={rpm}
+              load={displayedLoad}
+            />
           </div>
         </div>
       </CardContent>
