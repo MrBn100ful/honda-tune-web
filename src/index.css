@@ -89,7 +89,7 @@
   
   /* Honda ECU tuning specific styles */
   .grid-cell {
-    @apply px-2 py-1 text-center text-sm border border-honda-gray;
+    @apply px-2 py-1 text-center text-sm border border-honda-gray text-honda-light;
   }
   
   .grid-header {
