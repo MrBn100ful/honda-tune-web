@@ -110,8 +110,11 @@ const getCellColorClass = (value: number) => {
   const range = maxValue - minValue;
   const normalizedValue = (value - minValue) / range;
   
-  if (normalizedValue < 0.33) return 'cell-value-low';
-  if (normalizedValue < 0.66) return 'cell-value-medium';
+  // Create a gradual color scale from green to red
+  if (normalizedValue < 0.2) return 'cell-value-low';
+  if (normalizedValue < 0.4) return 'cell-value-low-mid';
+  if (normalizedValue < 0.6) return 'cell-value-mid';
+  if (normalizedValue < 0.8) return 'cell-value-mid-high';
   return 'cell-value-high';
 };
 
@@ -435,3 +438,27 @@ const FuelMap = () => {
 };
 
 export default FuelMap;
+
+// Add these styles to your CSS or Tailwind config
+const styles = `
+  .cell-value-low {
+    background-color: #22c55e; /* Green */
+    color: white;
+  }
+  .cell-value-low-mid {
+    background-color: #84cc16; /* Light Green */
+    color: white;
+  }
+  .cell-value-mid {
+    background-color: #eab308; /* Yellow */
+    color: black;
+  }
+  .cell-value-mid-high {
+    background-color: #f97316; /* Orange */
+    color: white;
+  }
+  .cell-value-high {
+    background-color: #ef4444; /* Red */
+    color: white;
+  }
+`;
