@@ -15,9 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 
 // Sample data for the fuel map
-const generateMapData = () => {
+const generateMapData = (isVtec: boolean = false) => {
   const rpm = [800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000, 6400, 6800];
-  // Use mbar for load
   const load = [200, 300, 400, 500, 600, 700, 800, 900, 1000];
   
   const data: number[][] = [];
@@ -25,8 +24,15 @@ const generateMapData = () => {
   for (let i = 0; i < load.length; i++) {
     const row: number[] = [];
     for (let j = 0; j < rpm.length; j++) {
-      // Generate a realistic fuel value that increases with RPM and load
-      let value = 10 + (i * 0.8) + (j * 0.5);
+      // Generate different values for VTEC and non-VTEC
+      let baseValue = isVtec ? 15 : 10; // Higher base for VTEC
+      let value = baseValue + (i * 0.8) + (j * 0.5);
+      
+      // Add more aggressive values for VTEC at higher RPMs
+      if (isVtec && j > 8) { // Above 4000 RPM
+        value += (j - 8) * 0.3; // Progressive increase
+      }
+      
       // Add some variation
       value += Math.random() * 2 - 1;
       row.push(parseFloat(value.toFixed(1)));
@@ -107,11 +113,18 @@ const getCellColorClass = (value: number) => {
 };
 
 const FuelMap = () => {
+  const [isVtec, setIsVtec] = useState(false);
   const [mapData, setMapData] = useState(data);
   const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
   const [pressureUnit, setPressureUnit] = useState<'mbar' | 'kPa' | 'psi'>('mbar');
   const [displayedLoad, setDisplayedLoad] = useState(load);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Update map data when VTEC state changes
+  useEffect(() => {
+    const { data: newData } = generateMapData(isVtec);
+    setMapData(newData);
+  }, [isVtec]);
   
   // Update displayed load when pressure unit changes
   useEffect(() => {
@@ -164,7 +177,27 @@ const FuelMap = () => {
     <Card className="w-full h-full bg-honda-dark border-honda-gray">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-honda-light">Fuel Map</CardTitle>
+          <div className="flex items-center gap-4">
+            <CardTitle className="text-honda-light">Fuel Map</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isVtec ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsVtec(true)}
+                className={`${isVtec ? 'bg-honda-red hover:bg-honda-red/90' : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
+              >
+                VTEC
+              </Button>
+              <Button
+                variant={!isVtec ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsVtec(false)}
+                className={`${!isVtec ? 'bg-honda-gray hover:bg-honda-gray/90' : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
+              >
+                Non-VTEC
+              </Button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <Select defaultValue="primary">
               <SelectTrigger className="w-[150px] h-8 text-sm bg-honda-gray border-honda-gray">
