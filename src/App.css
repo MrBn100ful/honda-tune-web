@@ -40,3 +40,29 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Fuel Map Cell Colors */
+.cell-value-low {
+  background-color: #22c55e; /* Green */
+  color: white;
+}
+
+.cell-value-low-mid {
+  background-color: #84cc16; /* Light Green */
+  color: white;
+}
+
+.cell-value-mid {
+  background-color: #eab308; /* Yellow */
+  color: black;
+}
+
+.cell-value-mid-high {
+  background-color: #f97316; /* Orange */
+  color: white;
+}
+
+.cell-value-high {
+  background-color: #ef4444; /* Red */
+  color: white;
+}
