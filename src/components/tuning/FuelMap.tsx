@@ -363,16 +363,59 @@ const FuelMap = () => {
 
             {/* Cell Editor Panel */}
             {selectedCell && (
-              <CellEditor
-                value={mapData[selectedCell.row][selectedCell.col]}
-                onSave={(newValue) => {
-                  const newMapData = [...mapData];
-                  newMapData[selectedCell.row][selectedCell.col] = newValue;
-                  setMapData(newMapData);
-                  setSelectedCell(null);
-                }}
-                onCancel={() => setSelectedCell(null)}
-              />
+              <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
+                <div className="text-sm font-medium text-honda-light mb-4">Cell Editor</div>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(-1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      -1
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(-0.1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      -0.1
+                    </Button>
+                    <Input
+                      type="number"
+                      value={mapData[selectedCell.row][selectedCell.col]}
+                      onChange={(e) => {
+                        const newMapData = [...mapData];
+                        newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
+                        setMapData(newMapData);
+                      }}
+                      className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
+                      placeholder="Value"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(0.1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      +0.1
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      +1
+                    </Button>
+                  </div>
+                  <div className="text-xs text-honda-light/70">
+                    Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
