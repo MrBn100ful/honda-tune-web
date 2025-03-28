@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Upload, Circle } from "lucide-react";
+import { Settings, Upload, Circle, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -8,6 +8,23 @@ const Navbar = () => {
   const [baudRate, setBaudRate] = useState("9600");
   const [rtpType, setRtpType] = useState("CobreRTP");
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const handleConnect = async () => {
+    setIsConnecting(true);
+    // Simulate connection delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsConnected(true);
+    setIsConnecting(false);
+  };
+
+  const handleDisconnect = async () => {
+    setIsConnecting(true);
+    // Simulate disconnection delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsConnected(false);
+    setIsConnecting(false);
+  };
 
   return (
     <div className="h-14 border-b border-honda-gray/50 bg-honda-dark flex items-center justify-between px-4">
@@ -29,9 +46,24 @@ const Navbar = () => {
           variant="outline" 
           size="sm" 
           className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+          disabled={!isConnected}
         >
           <Upload size={16} className="mr-2" />
           Flash EEPROM
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={isConnected ? handleDisconnect : handleConnect}
+          disabled={isConnecting}
+          className={`${
+            isConnected 
+              ? 'bg-red-900/50 border-red-900/50 text-red-200 hover:bg-red-900/70' 
+              : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'
+          }`}
+        >
+          <Plug size={16} className={`mr-2 ${isConnecting ? 'animate-pulse' : ''}`} />
+          {isConnecting ? 'Connecting...' : isConnected ? 'Disconnect' : 'Connect'}
         </Button>
         <Dialog>
           <DialogTrigger asChild>
