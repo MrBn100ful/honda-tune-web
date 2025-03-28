@@ -92,7 +92,7 @@ const Sidebar = ({ isConnected }: SidebarProps) => {
         <div className="p-4 space-y-4">
           {isConnected ? (
             Object.entries(categories).map(([category, keys]) => (
-              <Card key={category} className="bg-honda-gray/50 border-honda-gray">
+              <Card key={category} className="bg-honda-dark border-honda-gray/50">
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm text-honda-light">{category}</CardTitle>
                 </CardHeader>
