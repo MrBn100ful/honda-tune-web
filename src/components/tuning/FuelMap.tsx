@@ -12,6 +12,8 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 // Sample data for the fuel map
 const generateMapData = () => {
@@ -191,34 +193,82 @@ const FuelMap = () => {
           {/* 2D Table View */}
           <div className="overflow-auto">
             <div className="mb-2 text-sm font-medium text-honda-light">2D Table View</div>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="grid-cell grid-header">RPM / Load ({pressureUnit})</th>
-                  {rpm.map((r, idx) => (
-                    <th key={idx} className="grid-cell grid-header">{r}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {mapData.map((row, rowIdx) => (
-                  <tr key={rowIdx}>
-                    <td className="grid-cell grid-header">{displayedLoad[rowIdx].toFixed(0)}</td>
-                    {row.map((value, colIdx) => (
-                      <td 
-                        key={colIdx} 
-                        className={`grid-cell ${getCellColorClass(value)} ${
-                          selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''
-                        }`}
-                        onClick={() => handleCellClick(rowIdx, colIdx)}
-                      >
-                        {value}
-                      </td>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="grid-cell grid-header">RPM / Load ({pressureUnit})</th>
+                      {rpm.map((r, idx) => (
+                        <th key={idx} className="grid-cell grid-header">{r}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mapData.map((row, rowIdx) => (
+                      <tr key={rowIdx}>
+                        <td className="grid-cell grid-header">{displayedLoad[rowIdx].toFixed(0)}</td>
+                        {row.map((value, colIdx) => (
+                          <td 
+                            key={colIdx} 
+                            className={`grid-cell ${getCellColorClass(value)} ${
+                              selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''
+                            }`}
+                            onClick={() => handleCellClick(rowIdx, colIdx)}
+                          >
+                            {value}
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </tbody>
+                </table>
+              </div>
+              {selectedCell && (
+                <div className="w-48 bg-honda-gray/50 p-4 rounded-lg">
+                  <div className="mb-4">
+                    <div className="text-sm text-honda-light/70 mb-1">Selected Cell</div>
+                    <div className="text-honda-light font-mono">
+                      RPM: {rpm[selectedCell.col]} / Load: {displayedLoad[selectedCell.row].toFixed(0)}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <Label htmlFor="cell-value" className="text-honda-light">Value</Label>
+                      <Input
+                        id="cell-value"
+                        type="number"
+                        value={mapData[selectedCell.row][selectedCell.col]}
+                        onChange={(e) => {
+                          const newMapData = [...mapData];
+                          newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
+                          setMapData(newMapData);
+                        }}
+                        className="bg-honda-dark border-honda-gray text-honda-light"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => adjustValue(-0.1)}
+                        className="flex-1 bg-honda-dark border-honda-gray text-honda-light hover:bg-honda-gray"
+                      >
+                        -0.1
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => adjustValue(0.1)}
+                        className="flex-1 bg-honda-dark border-honda-gray text-honda-light hover:bg-honda-gray"
+                      >
+                        +0.1
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 3D Visualization */}
@@ -258,59 +308,6 @@ const FuelMap = () => {
             </div>
           </div>
         </div>
-
-        {/* Cell Editor */}
-        {selectedCell && (
-          <div className="mt-4 bg-honda-gray p-3 rounded-md">
-            <h3 className="text-sm font-bold text-honda-light">Cell Editor</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-              <div className="bg-honda-dark rounded p-2">
-                <div className="text-xs text-honda-light">
-                  RPM: <span className="font-bold">{rpm[selectedCell.col]}</span>
-                </div>
-                <div className="text-xs text-honda-light">
-                  Load: <span className="font-bold">{displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}</span>
-                </div>
-                <div className="text-lg font-bold text-honda-red mt-1">
-                  {mapData[selectedCell.row][selectedCell.col]}
-                </div>
-              </div>
-              
-              <div className="flex flex-col justify-center">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" size="sm" onClick={() => adjustValue(0.1)}>
-                    <PlusCircle size={16} className="mr-1" /> 0.1
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => adjustValue(-0.1)}>
-                    <MinusCircle size={16} className="mr-1" /> 0.1
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => adjustValue(1)}>
-                    <PlusCircle size={16} className="mr-1" /> 1.0
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => adjustValue(-1)}>
-                    <MinusCircle size={16} className="mr-1" /> 1.0
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex flex-col justify-center">
-                <input 
-                  type="range" 
-                  min={0} 
-                  max={30} 
-                  step={0.1}
-                  value={mapData[selectedCell.row][selectedCell.col]}
-                  onChange={(e) => {
-                    const newMapData = [...mapData];
-                    newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                    setMapData(newMapData);
-                  }}
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
