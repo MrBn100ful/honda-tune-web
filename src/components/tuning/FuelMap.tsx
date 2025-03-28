@@ -130,6 +130,7 @@ const FuelMap = () => {
     const currentRef = chartContainerRef.current;
     
     const preventScroll = (e: WheelEvent) => {
+      e.preventDefault();
       e.stopPropagation();
     };
     
@@ -214,11 +215,13 @@ const FuelMap = () => {
           </div>
 
           {/* 3D Visualization */}
-          <div className="h-full">
+          <div className="h-full flex flex-col">
             <div className="mb-2 text-sm font-medium text-honda-light">3D Visualization</div>
             <div 
               ref={chartContainerRef}
-              className="bg-honda-gray rounded-md h-[calc(100%-24px)] overflow-hidden">
+              className="bg-honda-gray rounded-md flex-1 overflow-hidden max-h-[calc(100%-24px)]"
+              style={{ height: 'calc(100% - 24px)', maxHeight: 'calc(100% - 24px)' }}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={rpm.map((r, idx) => {
