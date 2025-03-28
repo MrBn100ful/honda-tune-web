@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings } from "lucide-react";
+import { Settings, Upload, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -7,13 +7,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 const Navbar = () => {
   const [baudRate, setBaudRate] = useState("9600");
   const [rtpType, setRtpType] = useState("CobreRTP");
+  const [isConnected, setIsConnected] = useState(false);
 
   return (
     <div className="h-14 border-b border-honda-gray/50 bg-honda-dark flex items-center justify-between px-4">
       <div className="flex items-center gap-4">
         <h1 className="text-lg font-semibold text-honda-light">WebTune - OBD1</h1>
+        <div className="flex items-center gap-2">
+          <Circle 
+            size={8} 
+            className={`${isConnected ? 'text-green-500' : 'text-red-500'}`} 
+            fill="currentColor"
+          />
+          <span className="text-sm text-honda-light/70">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
       </div>
       <div className="flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+        >
+          <Upload size={16} className="mr-2" />
+          Flash EEPROM
+        </Button>
         <Dialog>
           <DialogTrigger asChild>
             <Button 

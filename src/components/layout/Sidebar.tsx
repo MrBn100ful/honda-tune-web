@@ -69,18 +69,7 @@ const Sidebar = () => {
 
   return (
     <div className="w-60 bg-honda-dark border-r border-honda-gray overflow-hidden hidden md:block">
-      <div className="p-2 border-b border-honda-gray/50">
-        <div className="flex items-center justify-between">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-          >
-            Flash EEPROM
-          </Button>
-        </div>
-      </div>
-      <ScrollArea className="h-[calc(100%-48px)] p-3">
+      <ScrollArea className="h-full p-3">
         {datalogSections.map((section, index) => (
           <div key={index} className="mb-6">
             <h3 className="menu-section-title text-sm mb-2 px-3">{section.title}</h3>
