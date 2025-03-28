@@ -105,6 +105,13 @@
   }
   
   .cell-value-medium {
+    @apply bg-yellow-900/50;
+  }
+  
+  .cell-value-high {
+    @apply bg-red-900/50;
+  }
+
   /* Menu styles */
   .menu-item {
     @apply text-white hover:text-honda-red;
@@ -112,6 +119,19 @@
 
   .menu-section-title {
     @apply text-white font-semibold;
+  }
+  
+  /* Datalog value styles */
+  .datalog-value {
+    @apply text-honda-light font-mono text-sm;
+  }
+
+  .datalog-label {
+    @apply text-honda-light/70 text-xs;
+  }
+
+  .datalog-unit {
+    @apply text-honda-light/50 text-xs;
   }
   
   /* Add blinking dot animation for connection status */
