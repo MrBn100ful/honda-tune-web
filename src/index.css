@@ -1,4 +1,6 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -71,6 +73,8 @@
     --destructive-foreground: 0 85.7% 97.3%;
  
     --ring: 215 27.9% 16.9%;
+    
+    --honda-dark: 220 13% 8%;
   }
 }
  
@@ -79,7 +83,8 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', sans-serif;
   }
   
   /* Honda ECU tuning specific styles */
@@ -93,5 +98,21 @@
   
   .grid-highlight {
     @apply bg-honda-red/20 border-honda-red;
+  }
+  
+  /* Add blinking dot animation for connection status */
+  .blinking-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: rgb(22, 163, 74);
+    margin-right: 4px;
+    animation: blink 1.5s infinite;
+  }
+  
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
   }
 }
