@@ -31,7 +31,7 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
       0.1,
       1000
     );
-    camera.position.set(5, 5, 5);
+    camera.position.set(2, 2, 2); // Closer position for better zoom
     cameraRef.current = camera;
 
     // Renderer setup
@@ -44,6 +44,8 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.minDistance = 1; // Minimum zoom distance
+    controls.maxDistance = 5; // Maximum zoom distance
     controlsRef.current = controls;
 
     // Create geometry
@@ -163,8 +165,6 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     <div ref={containerRef} className="w-full h-[400px] bg-honda-dark rounded-lg overflow-hidden">
       <div className="absolute top-4 left-4 text-honda-light text-sm">
         <div>RPM: X-axis</div>
-        <div>Load (mbar): Y-axis</div>
-        <div>Injection (ms): Z-axis</div>
       </div>
     </div>
   );
