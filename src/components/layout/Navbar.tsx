@@ -4,17 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-const Navbar = () => {
+interface NavbarProps {
+  isConnected: boolean;
+  onConnectionChange: (connected: boolean) => void;
+}
+
+const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
   const [baudRate, setBaudRate] = useState("9600");
   const [rtpType, setRtpType] = useState("CobreRTP");
-  const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
     setIsConnecting(true);
     // Simulate connection delay
     await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsConnected(true);
+    onConnectionChange(true);
     setIsConnecting(false);
   };
 
@@ -22,7 +26,7 @@ const Navbar = () => {
     setIsConnecting(true);
     // Simulate disconnection delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsConnected(false);
+    onConnectionChange(false);
     setIsConnecting(false);
   };
 

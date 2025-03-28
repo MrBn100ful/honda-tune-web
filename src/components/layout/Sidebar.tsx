@@ -1,101 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
-import { Activity, Thermometer, Gauge, Droplet, Zap, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Gauge, Thermometer, Activity, Timer } from "lucide-react";
 
-interface DatalogValue {
-  name: string;
-  value: number;
-  unit: string;
-  icon: React.ReactNode;
-  category: string;
+interface SidebarProps {
+  isConnected: boolean;
 }
 
-const datalogSections = [
-  {
-    title: "Engine Status",
-    items: [
-      { name: "RPM", unit: "rpm", icon: <Activity size={16} /> },
-      { name: "MAP", unit: "kPa", icon: <Gauge size={16} /> },
-      { name: "ECT", unit: "°C", icon: <Thermometer size={16} /> },
-      { name: "IAT", unit: "°C", icon: <Thermometer size={16} /> }
-    ]
-  },
-  {
-    title: "Fuel System",
-    items: [
-      { name: "Injector Duty", unit: "%", icon: <Droplet size={16} /> },
-      { name: "AFR", unit: "λ", icon: <Droplet size={16} /> },
-      { name: "Fuel Pressure", unit: "kPa", icon: <Droplet size={16} /> }
-    ]
-  },
-  {
-    title: "Ignition",
-    items: [
-      { name: "Timing", unit: "°", icon: <Zap size={16} /> },
-      { name: "Knock", unit: "count", icon: <AlertTriangle size={16} /> }
-    ]
-  }
-];
-
-const Sidebar = () => {
-  const [datalogValues, setDatalogValues] = useState<Record<string, DatalogValue>>({});
-
-  // Simulate real-time data updates
-  useEffect(() => {
-    const updateDatalogValues = () => {
-      const newValues: Record<string, DatalogValue> = {};
-      
-      datalogSections.forEach(section => {
-        section.items.forEach(item => {
-          newValues[item.name] = {
-            ...item,
-            value: Math.random() * 100, // Simulated values
-            category: section.title
-          };
-        });
-      });
-
-      setDatalogValues(newValues);
-    };
-
-    // Update every second
-    const interval = setInterval(updateDatalogValues, 1000);
-    updateDatalogValues(); // Initial update
-
-    return () => clearInterval(interval);
-  }, []);
-
+const Sidebar = ({ isConnected }: SidebarProps) => {
   return (
-    <div className="w-60 bg-honda-dark border-r border-honda-gray overflow-hidden hidden md:block">
-      <ScrollArea className="h-full p-3">
-        {datalogSections.map((section, index) => (
-          <div key={index} className="mb-6">
-            <h3 className="menu-section-title text-sm mb-2 px-3">{section.title}</h3>
-            <div className="space-y-2">
-              {section.items.map((item, itemIndex) => {
-                const value = datalogValues[item.name];
-                return (
-                  <Card key={itemIndex} className="p-2 bg-honda-gray/50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-honda-light/70">{item.icon}</span>
-                        <div>
-                          <div className="datalog-label">{item.name}</div>
-                          <div className="datalog-value">
-                            {value ? value.value.toFixed(1) : "---"}
-                            <span className="datalog-unit ml-1">{item.unit}</span>
-                          </div>
-                        </div>
-                      </div>
+    <div className="w-64 border-r border-honda-gray/50 bg-honda-dark flex flex-col">
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-4">
+          {isConnected ? (
+            <>
+              <Card className="bg-honda-gray/50 border-honda-gray">
+                <CardHeader className="p-3">
+                  <CardTitle className="text-sm text-honda-light">Datalog</CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-honda-light/70">
+                      <Gauge size={14} />
+                      <span>RPM</span>
                     </div>
-                  </Card>
-                );
-              })}
+                    <span className="text-honda-light">2,450</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-honda-light/70">
+                      <Thermometer size={14} />
+                      <span>ECT</span>
+                    </div>
+                    <span className="text-honda-light">185°F</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-honda-light/70">
+                      <Activity size={14} />
+                      <span>MAP</span>
+                    </div>
+                    <span className="text-honda-light">12.5 psi</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-honda-light/70">
+                      <Timer size={14} />
+                      <span>IAT</span>
+                    </div>
+                    <span className="text-honda-light">95°F</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <div className="text-center py-8 text-honda-light/50">
+              <p>Connect to view datalog information</p>
             </div>
-          </div>
-        ))}
+          )}
+        </div>
       </ScrollArea>
     </div>
   );

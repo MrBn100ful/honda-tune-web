@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 
@@ -7,15 +7,17 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
+  const [isConnected, setIsConnected] = useState(false);
+
   return (
-    <div className="h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 flex overflow-hidden">
-        <Sidebar />
-        <div className="flex-1 overflow-auto p-4">
+    <div className="min-h-screen bg-honda-dark">
+      <Navbar isConnected={isConnected} onConnectionChange={setIsConnected} />
+      <div className="flex">
+        <Sidebar isConnected={isConnected} />
+        <main className="flex-1 p-6">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };
