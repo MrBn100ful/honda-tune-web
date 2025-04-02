@@ -1,8 +1,11 @@
+
 import React, { useState } from 'react';
 import { Settings, Upload, Circle, Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { AboutDialog } from "@/components/layout/AboutDialog";
 
 interface NavbarProps {
   isConnected: boolean;
@@ -51,6 +54,9 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
         </div>
+        <div className="ml-4 text-xs italic text-honda-light/60 max-w-md">
+          This is a front-end demo of what a modern ECU tuning software could look like. This will never do anything real.
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <Dialog open={showFlashWarning} onOpenChange={setShowFlashWarning}>
@@ -97,6 +103,8 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
           <Plug size={16} className={`mr-2 ${isConnecting ? 'animate-pulse' : ''}`} />
           {isConnecting ? 'Connecting...' : isConnected ? 'Disconnect' : 'Connect'}
         </Button>
+        <AboutDialog />
+        <ThemeToggle />
         <Dialog>
           <DialogTrigger asChild>
             <Button 
@@ -149,4 +157,4 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
   );
 };
 
-export default Navbar; 
+export default Navbar;
