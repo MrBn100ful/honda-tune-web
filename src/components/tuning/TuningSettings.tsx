@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -416,8 +415,8 @@ const TuningSettings = () => {
               className="hidden"
             />
             <label htmlFor="load-settings">
-              <Button variant="outline" size="sm" className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark cursor-pointer" as="span">
-                <Upload size={16} className="mr-1" /> Load
+              <Button variant="outline" size="sm" className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark cursor-pointer" asChild>
+                <span><Upload size={16} className="mr-1" /> Load</span>
               </Button>
             </label>
             <Button variant="outline" size="sm" onClick={handleReset} className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark">
@@ -1078,4 +1077,3 @@ const TuningSettings = () => {
 };
 
 export default TuningSettings;
-
