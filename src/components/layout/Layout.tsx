@@ -14,7 +14,7 @@ const Layout = ({ children }: LayoutProps) => {
       <Navbar isConnected={isConnected} onConnectionChange={setIsConnected} />
       <div className="flex">
         <Sidebar isConnected={isConnected} />
-        <main className="flex-1 p-6">
+        <main className="flex-1">
           {children}
         </main>
       </div>
