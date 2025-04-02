@@ -10,18 +10,18 @@ const Index = () => {
   
   return (
     <Layout>
-      <div className="w-full h-[calc(100vh-64px)]">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full">
-          <TabsList className="mx-4 mt-2">
+      <div className="w-full h-[calc(100vh-64px)] overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+          <TabsList className="mx-4 mt-2 flex-none">
             <TabsTrigger value="maps">Maps</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="maps" className="h-[calc(100%-40px)]">
+          <TabsContent value="maps" className="h-[calc(100%-40px)] overflow-hidden">
             <FuelMap />
           </TabsContent>
           
-          <TabsContent value="settings" className="h-[calc(100%-40px)] p-4 overflow-hidden">
+          <TabsContent value="settings" className="h-[calc(100%-40px)] overflow-hidden p-4">
             <TuningSettings />
           </TabsContent>
         </Tabs>

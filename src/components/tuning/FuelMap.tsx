@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox } from "lucide-react";
+import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,12 +11,82 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import FuelMap3D from './FuelMap3D';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CellEditorProps {
   value: number;
   onSave: (value: number) => void;
   onCancel: () => void;
 }
+
+interface DraggableEditorProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+const DraggableEditor: React.FC<DraggableEditorProps> = ({ children, className }) => {
+  const [position, setPosition] = useState({ x: 20, y: 20 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (editorRef.current && e.target === editorRef.current.querySelector('.drag-handle')) {
+      setIsDragging(true);
+      const rect = editorRef.current.getBoundingClientRect();
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
+    }
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
+  return (
+    <div
+      ref={editorRef}
+      className={`absolute z-50 shadow-lg ${className}`}
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+      }}
+      onMouseDown={handleMouseDown}
+    >
+      <div className="drag-handle bg-honda-gray/90 p-2 rounded-t-md flex items-center justify-between cursor-move">
+        <span className="text-sm font-medium text-honda-light">Cell Editor</span>
+        <Move size={16} className="text-honda-light/70" />
+      </div>
+      {children}
+    </div>
+  );
+};
 
 const MAP_TYPES = {
   FUEL: 'Fuel',
@@ -195,6 +265,7 @@ const FuelMap = () => {
   const [displayedLoad, setDisplayedLoad] = useState<number[]>([]);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [percentageAdjustment, setPercentageAdjustment] = useState<number>(5);
+  const [showEditor, setShowEditor] = useState<boolean>(true);
   
   useEffect(() => {
     const { rpm: newRpm, load: newLoad, data: newData } = generateMapData(isVtec, mapType);
@@ -422,9 +493,16 @@ const FuelMap = () => {
     toast.info(`Map Report: Avg=${report.average}${getMapTypeUnit(mapType)}, Range=${report.minValue}-${report.maxValue}${getMapTypeUnit(mapType)}`);
   };
 
+  const getDisplayedLoadValue = (idx: number) => {
+    if (!displayedLoad || idx >= displayedLoad.length || displayedLoad[idx] === undefined) {
+      return "N/A";
+    }
+    return displayedLoad[idx].toFixed(0);
+  };
+
   return (
-    <Card className="w-full h-full bg-honda-dark border-honda-gray">
-      <CardHeader className="pb-3">
+    <Card className="w-full h-full bg-honda-dark border-honda-gray overflow-hidden">
+      <CardHeader className="pb-2 flex-none">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <CardTitle className="text-honda-light">Tuning Maps</CardTitle>
@@ -513,9 +591,9 @@ const FuelMap = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="h-[calc(100%-64px)] pb-4 flex flex-col">
-        <div className="space-y-4 flex-1 flex flex-col">
-          <div className="flex items-center justify-between mb-2">
+      <CardContent className="h-[calc(100%-60px)] pb-2 overflow-hidden flex flex-col">
+        <div className="space-y-2 flex-1 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between mb-1 flex-none">
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -582,8 +660,8 @@ const FuelMap = () => {
             </div>
           </div>
           
-          <div className="relative flex-1 overflow-hidden" style={{maxHeight: "calc(100% - 40px)"}}>
-            <div ref={chartContainerRef} className="overflow-auto h-full" style={{maxHeight: "100%"}}>
+          <ScrollArea className="flex-1 relative" style={{height: "calc(100% - 340px)"}}>
+            <div ref={chartContainerRef} className="w-full">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
@@ -597,9 +675,7 @@ const FuelMap = () => {
                   {mapData.map((row, rowIdx) => (
                     <tr key={rowIdx}>
                       <td className="grid-cell grid-header">
-                        {displayedLoad && displayedLoad[rowIdx] !== undefined 
-                          ? displayedLoad[rowIdx].toFixed(0) 
-                          : "N/A"}
+                        {getDisplayedLoadValue(rowIdx)}
                       </td>
                       {row.map((value, colIdx) => (
                         <td 
@@ -618,14 +694,13 @@ const FuelMap = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </ScrollArea>
 
-              <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
-                <div className="text-sm font-medium text-honda-light mb-4">
-                  {selectedCells.length > 0 
-                    ? `Editing ${selectedCells.length} cells` 
-                    : 'Cell Editor'}
-                </div>
-                <div className="flex flex-col gap-4">
+          {showEditor && (selectedCells.length > 0 || selectedCell) && (
+            <DraggableEditor className="bg-honda-dark border border-honda-gray/50 rounded-md shadow-lg">
+              <div className="p-3">
+                <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <Button 
                       variant="outline" 
@@ -678,7 +753,7 @@ const FuelMap = () => {
                   
                   {selectedCell && (
                     <div className="text-xs text-honda-light/70">
-                      Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
+                      Selected: RPM: {rpm[selectedCell.col]}, Load: {getDisplayedLoadValue(selectedCell.row)} {pressureUnit}
                     </div>
                   )}
                   
@@ -687,25 +762,43 @@ const FuelMap = () => {
                       <div className="text-xs text-honda-light/70">
                         {selectedCells.length} cells selected
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex gap-2">
                         <Button 
-                          variant="destructive" 
+                          variant="outline" 
                           size="sm" 
-                          onClick={() => setSelectedCells([])}
-                          className="bg-red-700 hover:bg-red-800"
+                          onClick={() => adjustValue(-percentageAdjustment, true)}
+                          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
                         >
-                          Clear Selection
+                          <MinusCircle size={14} className="mr-1" />
+                          {percentageAdjustment}%
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => adjustValue(percentageAdjustment, true)}
+                          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                        >
+                          <PlusCircle size={14} className="mr-1" />
+                          {percentageAdjustment}%
                         </Button>
                       </div>
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={() => setSelectedCells([])}
+                        className="bg-red-700 hover:bg-red-800"
+                      >
+                        Clear Selection
+                      </Button>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-          </div>
+            </DraggableEditor>
+          )}
 
-          <div className="h-[300px]">
-            <h3 className="text-sm font-medium text-honda-light mb-2">3D View</h3>
+          <div className="h-[300px] flex-none mt-2">
+            <h3 className="text-sm font-medium text-honda-light mb-1">3D View</h3>
             <FuelMap3D 
               mapData={mapData}
               rpm={rpm}

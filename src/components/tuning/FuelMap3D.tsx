@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 interface FuelMap3DProps {
   mapData: number[][];
@@ -27,14 +27,14 @@ const FuelMap3D = ({ mapData, rpm, load, mapType = 'Fuel' }: FuelMap3DProps) => 
     scene.background = new THREE.Color(0x1a1a1a); // Dark background
     sceneRef.current = scene;
 
-    // Camera setup with better initial position
+    // Camera setup with improved position for closer view from left side
     const camera = new THREE.PerspectiveCamera(
-      60, // Reduced FOV for better perspective
+      50, // Reduced FOV for closer view
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       1000
     );
-    camera.position.set(3, 3, 3); // Adjusted initial position
+    camera.position.set(-4, 2, 0); // Position camera on the left side
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
@@ -52,8 +52,8 @@ const FuelMap3D = ({ mapData, rpm, load, mapType = 'Fuel' }: FuelMap3DProps) => 
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.screenSpacePanning = true;
-    controls.minDistance = 2; // Minimum zoom distance
-    controls.maxDistance = 10; // Maximum zoom distance
+    controls.minDistance = 1.5; // Closer minimum zoom
+    controls.maxDistance = 8; // Reduced maximum zoom
     controls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation
     controls.minPolarAngle = 0; // Prevent going below the surface
     controls.target.set(0, 0, 0);
