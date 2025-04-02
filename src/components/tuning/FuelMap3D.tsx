@@ -51,7 +51,7 @@ const FuelMap3D = ({ mapData, rpm, load, mapType = 'Fuel' }: FuelMap3DProps) => 
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.screenSpacePanning = false;
-    controls.minDistance = 5; // Closer minimum zoom
+    controls.minDistance = 9; // Closer minimum zoom
     controls.maxDistance = 20; // Reduced maximum zoom
     controls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation
     controls.minPolarAngle = 0; // Prevent going below the surface
