@@ -1,24 +1,35 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MinusCircle, Save, X, Upload } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  Surface,
-  Tooltip,
-  ResponsiveContainer,
-  XAxis,
-  YAxis
-} from 'recharts';
+import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import FuelMap3D from './FuelMap3D';
 
+interface CellEditorProps {
+  value: number;
+  onSave: (value: number) => void;
+  onCancel: () => void;
+}
+
+// Map type definitions
+const MAP_TYPES = {
+  FUEL: 'Fuel',
+  AFR: 'AFR Target',
+  IGNITION: 'Ignition',
+  INJ_DUTY: 'Injector Duty',
+  BOOST: 'Boost',
+};
+
 // Sample data for the fuel map
-const generateMapData = (isVtec: boolean = false) => {
+const generateMapData = (isVtec: boolean = false, mapType: string = MAP_TYPES.FUEL) => {
   const rpm = [800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000, 6400, 6800];
   const load = [200, 300, 400, 500, 600, 700, 800, 900, 1000];
   
@@ -27,13 +38,39 @@ const generateMapData = (isVtec: boolean = false) => {
   for (let i = 0; i < load.length; i++) {
     const row: number[] = [];
     for (let j = 0; j < rpm.length; j++) {
-      // Generate different values for VTEC and non-VTEC
-      let baseValue = isVtec ? 15 : 10; // Higher base for VTEC
-      let value = baseValue + (i * 0.8) + (j * 0.5);
+      let value = 0;
       
-      // Add more aggressive values for VTEC at higher RPMs
-      if (isVtec && j > 8) { // Above 4000 RPM
-        value += (j - 8) * 0.3; // Progressive increase
+      // Generate different values based on map type
+      if (mapType === MAP_TYPES.FUEL) {
+        // Fuel map values (milliseconds)
+        let baseValue = isVtec ? 15 : 10; // Higher base for VTEC
+        value = baseValue + (i * 0.8) + (j * 0.5);
+        
+        if (isVtec && j > 8) { // Above 4000 RPM
+          value += (j - 8) * 0.3; // Progressive increase
+        }
+      } 
+      else if (mapType === MAP_TYPES.AFR) {
+        // AFR target values (lambda)
+        let baseValue = 14.7; // Stoichiometric
+        // Richer at higher loads and RPM
+        value = baseValue - (i * 0.2) - (j * 0.1);
+        value = Math.max(value, 11.5); // Min AFR
+      }
+      else if (mapType === MAP_TYPES.IGNITION) {
+        // Ignition timing values (degrees)
+        let baseValue = 15; // Base advance
+        value = baseValue + (j * 0.4) - (i * 0.6); // More advance at high rpm, less at high load
+        value = Math.max(value, 5); // Min advance
+      }
+      else if (mapType === MAP_TYPES.INJ_DUTY) {
+        // Injector duty cycle values (percentage)
+        value = 20 + (i * 5) + (j * 3); // Increases with load and RPM
+        value = Math.min(value, 85); // Max safe duty
+      }
+      else if (mapType === MAP_TYPES.BOOST) {
+        // Boost target values (PSI)
+        value = Math.max(0, -5 + (i * 0.8) + (j * 0.4)); // Increases with load and RPM
       }
       
       // Add some variation
@@ -63,21 +100,6 @@ const transformDataFor3D = (mapData: number[][], rpm: number[], load: number[]) 
   return result;
 };
 
-// Prepare surface data for recharts
-const prepareSurfaceData = (data3d: any[], xSize: number, ySize: number) => {
-  const result = [];
-  
-  for (let y = 0; y < ySize; y++) {
-    const row = [];
-    for (let x = 0; x < xSize; x++) {
-      row.push(data3d[y * xSize + x].value);
-    }
-    result.push(row);
-  }
-  
-  return result;
-};
-
 // Unit converters
 const convertUnits = (value: number, fromUnit: string, toUnit: string): number => {
   // First convert to mbar as base unit
@@ -102,15 +124,37 @@ const convertUnits = (value: number, fromUnit: string, toUnit: string): number =
   return value; // Fallback
 };
 
-const { rpm, load, data } = generateMapData();
+const getMapTypeUnit = (mapType: string): string => {
+  switch (mapType) {
+    case MAP_TYPES.FUEL:
+      return 'ms';
+    case MAP_TYPES.AFR:
+      return 'λ';
+    case MAP_TYPES.IGNITION:
+      return '°';
+    case MAP_TYPES.INJ_DUTY:
+      return '%';
+    case MAP_TYPES.BOOST:
+      return 'PSI';
+    default:
+      return '';
+  }
+};
 
-const getCellColorClass = (value: number) => {
-  const minValue = Math.min(...data.flat());
-  const maxValue = Math.max(...data.flat());
-  const range = maxValue - minValue;
-  const normalizedValue = (value - minValue) / range;
+const getCellColorClass = (value: number, mapType: string, min: number, max: number) => {
+  const range = max - min;
+  const normalizedValue = (value - min) / range;
   
-  // Create a gradual color scale from green to red
+  // For AFR, lower is richer (red), higher is leaner (green) - inverse of other maps
+  if (mapType === MAP_TYPES.AFR) {
+    if (normalizedValue > 0.8) return 'cell-value-low';
+    if (normalizedValue > 0.6) return 'cell-value-low-mid';
+    if (normalizedValue > 0.4) return 'cell-value-mid';
+    if (normalizedValue > 0.2) return 'cell-value-mid-high';
+    return 'cell-value-high';
+  }
+  
+  // For other maps, higher values are red, lower values are green
   if (normalizedValue < 0.2) return 'cell-value-low';
   if (normalizedValue < 0.4) return 'cell-value-low-mid';
   if (normalizedValue < 0.6) return 'cell-value-mid';
@@ -157,17 +201,26 @@ const CellEditor = ({ value, onSave, onCancel }: CellEditorProps) => {
 
 const FuelMap = () => {
   const [isVtec, setIsVtec] = useState(false);
-  const [mapData, setMapData] = useState(data);
+  const [mapType, setMapType] = useState<string>(MAP_TYPES.FUEL);
+  const [mapData, setMapData] = useState<number[][]>([]);
+  const [rpm, setRpm] = useState<number[]>([]);
+  const [load, setLoad] = useState<number[]>([]);
   const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
+  const [selectedCells, setSelectedCells] = useState<{ row: number, col: number }[]>([]);
+  const [selectionMode, setSelectionMode] = useState<boolean>(false);
   const [pressureUnit, setPressureUnit] = useState<'mbar' | 'kPa' | 'psi'>('mbar');
-  const [displayedLoad, setDisplayedLoad] = useState(load);
+  const [displayedLoad, setDisplayedLoad] = useState<number[]>([]);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [percentageAdjustment, setPercentageAdjustment] = useState<number>(5);
   
-  // Update map data when VTEC state changes
+  // Initialize map data
   useEffect(() => {
-    const { data: newData } = generateMapData(isVtec);
+    const { rpm: newRpm, load: newLoad, data: newData } = generateMapData(isVtec, mapType);
+    setRpm(newRpm);
+    setLoad(newLoad);
     setMapData(newData);
-  }, [isVtec]);
+    setDisplayedLoad(newLoad);
+  }, [isVtec, mapType]);
   
   // Update displayed load when pressure unit changes
   useEffect(() => {
@@ -177,19 +230,99 @@ const FuelMap = () => {
         : convertUnits(value, 'mbar', pressureUnit)
     );
     setDisplayedLoad(newDisplayedLoad);
-  }, [pressureUnit]);
+  }, [pressureUnit, load]);
   
-  const handleCellClick = (row: number, col: number) => {
-    setSelectedCell({ row, col });
+  // Handle cell selection logic
+  const handleCellClick = (row: number, col: number, isMultiSelect: boolean = false) => {
+    if (isMultiSelect || selectionMode) {
+      // Add or remove from selection
+      const existingIndex = selectedCells.findIndex(cell => cell.row === row && cell.col === col);
+      if (existingIndex > -1) {
+        const newSelection = [...selectedCells];
+        newSelection.splice(existingIndex, 1);
+        setSelectedCells(newSelection);
+      } else {
+        setSelectedCells([...selectedCells, { row, col }]);
+      }
+    } else {
+      // Single cell selection
+      setSelectedCells([]);
+      setSelectedCell({ row, col });
+    }
   };
   
-  const adjustValue = (amount: number) => {
+  // Apply a value to all selected cells or the current cell
+  const adjustValue = (amount: number, isPercentage: boolean = false) => {
+    if (selectedCells.length > 0) {
+      // Multi-cell adjustment
+      const newMapData = [...mapData];
+      selectedCells.forEach(({ row, col }) => {
+        if (isPercentage) {
+          const percentChange = amount; // Percentage to change
+          const currentValue = newMapData[row][col];
+          const change = currentValue * (percentChange / 100);
+          newMapData[row][col] = parseFloat((currentValue + change).toFixed(1));
+        } else {
+          newMapData[row][col] = parseFloat((newMapData[row][col] + amount).toFixed(1));
+        }
+      });
+      setMapData(newMapData);
+      toast.success(`Adjusted ${selectedCells.length} cells ${isPercentage ? 'by' : 'with'} ${isPercentage ? amount + '%' : amount}`);
+    } else if (selectedCell) {
+      // Single cell adjustment
+      const { row, col } = selectedCell;
+      const newMapData = [...mapData];
+      
+      if (isPercentage) {
+        const percentChange = amount; // Percentage to change
+        const currentValue = newMapData[row][col];
+        const change = currentValue * (percentChange / 100);
+        newMapData[row][col] = parseFloat((currentValue + change).toFixed(1));
+      } else {
+        newMapData[row][col] = parseFloat((newMapData[row][col] + amount).toFixed(1));
+      }
+      
+      setMapData(newMapData);
+    }
+  };
+  
+  // Set exact value for selected cell
+  const setExactValue = (value: number) => {
     if (!selectedCell) return;
     
     const { row, col } = selectedCell;
     const newMapData = [...mapData];
-    newMapData[row][col] = parseFloat((newMapData[row][col] + amount).toFixed(1));
+    newMapData[row][col] = value;
     setMapData(newMapData);
+    setSelectedCell(null);
+  };
+  
+  // Select a range of cells
+  const selectCellRange = (startRow: number, startCol: number, endRow: number, endCol: number) => {
+    const newSelection: { row: number, col: number }[] = [];
+    
+    // Ensure startRow <= endRow and startCol <= endCol
+    if (startRow > endRow) [startRow, endRow] = [endRow, startRow];
+    if (startCol > endCol) [startCol, endCol] = [endCol, startCol];
+    
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol; c <= endCol; c++) {
+        newSelection.push({ row: r, col: c });
+      }
+    }
+    
+    setSelectedCells(newSelection);
+  };
+  
+  // Toggle selection mode
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    if (!selectionMode) {
+      toast.info("Multi-select mode enabled. Click cells to select multiple cells.");
+    } else {
+      toast.info("Multi-select mode disabled.");
+      setSelectedCells([]);
+    }
   };
   
   // Prevent wheel event propagation within the chart container
@@ -212,31 +345,35 @@ const FuelMap = () => {
     };
   }, []);
   
-  // Data transformed for 3D visualization
-  const data3d = transformDataFor3D(mapData, rpm, load);
-  const surfaceData = prepareSurfaceData(data3d, rpm.length, load.length);
+  // Calculate min and max values for color coding
+  const minValue = Math.min(...mapData.flat());
+  const maxValue = Math.max(...mapData.flat());
   
+  // Handle Save Map
   const handleSaveMap = () => {
-    const mapData = {
-      name: "Fuel Map",
+    const mapDataExport = {
+      name: `${mapType} Map`,
       rpm: rpm,
       load: displayedLoad,
       data: mapData,
       vtecEnabled: isVtec,
-      vtecData: data
+      mapType: mapType,
+      pressureUnit: pressureUnit
     };
     
-    const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(mapDataExport, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'fuel-map.json';
+    a.download = `${mapType.toLowerCase().replace(' ', '-')}-map.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    toast.success(`${mapType} map saved successfully!`);
   };
 
+  // Handle Load Map
   const handleLoadMap = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -247,12 +384,80 @@ const FuelMap = () => {
         const mapData = JSON.parse(e.target?.result as string);
         setIsVtec(mapData.vtecEnabled);
         setMapData(mapData.data);
-        setDisplayedLoad(mapData.load);
+        setRpm(mapData.rpm || rpm);
+        setLoad(mapData.load || load);
+        setDisplayedLoad(mapData.load || load);
+        if (mapData.mapType) setMapType(mapData.mapType);
+        if (mapData.pressureUnit) setPressureUnit(mapData.pressureUnit as 'mbar' | 'kPa' | 'psi');
+        toast.success("Map loaded successfully!");
       } catch (error) {
         console.error('Error loading map:', error);
+        toast.error("Error loading map file");
       }
     };
     reader.readAsText(file);
+  };
+
+  // Interpolate map - smooth values
+  const interpolateMap = () => {
+    if (mapData.length < 3 || mapData[0].length < 3) {
+      toast.error("Map is too small to interpolate");
+      return;
+    }
+    
+    const newMapData = [...mapData];
+    
+    // Create a temp copy to reference original values
+    const tempMap = mapData.map(row => [...row]);
+    
+    // Interpolate interior cells
+    for (let i = 1; i < mapData.length - 1; i++) {
+      for (let j = 1; j < mapData[i].length - 1; j++) {
+        // Skip if cell is in selection (preserve user adjustments)
+        if (selectedCells.some(cell => cell.row === i && cell.col === j)) {
+          continue;
+        }
+        
+        // Average of surrounding cells
+        const avg = (
+          tempMap[i-1][j-1] + tempMap[i-1][j] + tempMap[i-1][j+1] +
+          tempMap[i][j-1] + tempMap[i][j+1] +
+          tempMap[i+1][j-1] + tempMap[i+1][j] + tempMap[i+1][j+1]
+        ) / 8;
+        
+        newMapData[i][j] = parseFloat(avg.toFixed(1));
+      }
+    }
+    
+    setMapData(newMapData);
+    toast.success("Map interpolated successfully");
+  };
+
+  // Generate a report about the current map
+  const generateMapReport = () => {
+    const report = {
+      mapType,
+      minValue,
+      maxValue,
+      average: parseFloat((mapData.flat().reduce((a, b) => a + b, 0) / mapData.flat().length).toFixed(2)),
+      vtecEnabled: isVtec,
+      cellCount: mapData.flat().length,
+      rpm: {
+        min: Math.min(...rpm),
+        max: Math.max(...rpm),
+        range: Math.max(...rpm) - Math.min(...rpm)
+      },
+      load: {
+        min: Math.min(...displayedLoad),
+        max: Math.max(...displayedLoad),
+        unit: pressureUnit
+      }
+    };
+    
+    console.log('Map Report:', report);
+    
+    // Could show this in a dialog
+    toast.info(`Map Report: Avg=${report.average}${getMapTypeUnit(mapType)}, Range=${report.minValue}-${report.maxValue}${getMapTypeUnit(mapType)}`);
   };
 
   return (
@@ -260,7 +465,7 @@ const FuelMap = () => {
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <CardTitle className="text-honda-light">Fuel Map</CardTitle>
+            <CardTitle className="text-honda-light">Tuning Maps</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 variant={isVtec ? "default" : "outline"}
@@ -281,6 +486,19 @@ const FuelMap = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Select value={mapType} onValueChange={setMapType}>
+              <SelectTrigger className="w-[120px] h-8 text-sm bg-honda-gray border-honda-gray">
+                <SelectValue placeholder="Map Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={MAP_TYPES.FUEL}>Fuel</SelectItem>
+                <SelectItem value={MAP_TYPES.AFR}>AFR Target</SelectItem>
+                <SelectItem value={MAP_TYPES.IGNITION}>Ignition</SelectItem>
+                <SelectItem value={MAP_TYPES.INJ_DUTY}>Injector Duty</SelectItem>
+                <SelectItem value={MAP_TYPES.BOOST}>Boost</SelectItem>
+              </SelectContent>
+            </Select>
+            
             <Select value={pressureUnit} onValueChange={(value) => setPressureUnit(value as 'mbar' | 'kPa' | 'psi')}>
               <SelectTrigger className="w-[90px] h-8 text-sm bg-honda-gray border-honda-gray">
                 <SelectValue placeholder="Unit" />
@@ -291,6 +509,7 @@ const FuelMap = () => {
                 <SelectItem value="psi">psi</SelectItem>
               </SelectContent>
             </Select>
+            
             <Dialog>
               <DialogTrigger asChild>
                 <Button
@@ -304,7 +523,7 @@ const FuelMap = () => {
               </DialogTrigger>
               <DialogContent className="bg-honda-dark border-honda-gray">
                 <DialogHeader>
-                  <DialogTitle className="text-honda-light">Load Fuel Map</DialogTitle>
+                  <DialogTitle className="text-honda-light">Load Map</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -319,6 +538,7 @@ const FuelMap = () => {
                 </div>
               </DialogContent>
             </Dialog>
+            
             <Button
               variant="outline"
               size="sm"
@@ -331,10 +551,77 @@ const FuelMap = () => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="h-[calc(100%-64px)]">
-        <div className="space-y-4">
-          <div className="relative">
-            <div className="overflow-auto relative">
+      <CardContent className="h-[calc(100%-64px)] pb-4 flex flex-col">
+        <div className="space-y-4 flex-1 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSelectionMode}
+                className={`${selectionMode ? 'bg-honda-accent text-white' : 'bg-honda-gray border-honda-gray text-honda-light'} hover:bg-honda-accent/80`}
+              >
+                {selectionMode ? 'Exit Selection' : 'Multi-Select'} ({selectedCells.length})
+              </Button>
+              
+              {selectedCells.length > 0 && (
+                <>
+                  <div className="flex items-center">
+                    <Label className="text-xs text-honda-light mr-2">Adj %:</Label>
+                    <Input
+                      type="number"
+                      value={percentageAdjustment}
+                      onChange={(e) => setPercentageAdjustment(Number(e.target.value))}
+                      className="w-16 h-8 text-sm bg-honda-gray border-honda-gray text-honda-light"
+                    />
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => adjustValue(-percentageAdjustment, true)}
+                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                  >
+                    <MinusCircle size={14} className="mr-1" />
+                    {percentageAdjustment}%
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => adjustValue(percentageAdjustment, true)}
+                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                  >
+                    <PlusCircle size={14} className="mr-1" />
+                    {percentageAdjustment}%
+                  </Button>
+                </>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={interpolateMap}
+                className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+              >
+                Interpolate
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={generateMapReport}
+                className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+              >
+                Map Info
+              </Button>
+            </div>
+          </div>
+          
+          <div className="relative flex-1 overflow-hidden" style={{maxHeight: "calc(100% - 40px)"}}>
+            <div ref={chartContainerRef} className="overflow-auto h-full" style={{maxHeight: "100%"}}>
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
@@ -351,12 +638,14 @@ const FuelMap = () => {
                       {row.map((value, colIdx) => (
                         <td 
                           key={colIdx} 
-                          className={`grid-cell ${getCellColorClass(value)} ${
-                            selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 'grid-highlight' : ''
+                          className={`grid-cell ${getCellColorClass(value, mapType, minValue, maxValue)} ${
+                            (selectedCell?.row === rowIdx && selectedCell?.col === colIdx) || 
+                            selectedCells.some(cell => cell.row === rowIdx && cell.col === colIdx) 
+                              ? 'grid-highlight' : ''
                           }`}
-                          onClick={() => handleCellClick(rowIdx, colIdx)}
+                          onClick={(e) => handleCellClick(rowIdx, colIdx, e.ctrlKey || e.metaKey)}
                         >
-                          {value}
+                          {value.toFixed(1)}{getMapTypeUnit(mapType)}
                         </td>
                       ))}
                     </tr>
@@ -365,9 +654,13 @@ const FuelMap = () => {
               </table>
 
               {/* Cell Editor Panel */}
-              {selectedCell && (
+              {(selectedCell || selectedCells.length > 0) && (
                 <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
-                  <div className="text-sm font-medium text-honda-light mb-4">Cell Editor</div>
+                  <div className="text-sm font-medium text-honda-light mb-4">
+                    {selectedCells.length > 0 
+                      ? `Editing ${selectedCells.length} cells` 
+                      : 'Cell Editor'}
+                  </div>
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2">
                       <Button 
@@ -386,17 +679,21 @@ const FuelMap = () => {
                       >
                         -0.1
                       </Button>
-                      <Input
-                        type="number"
-                        value={mapData[selectedCell.row][selectedCell.col]}
-                        onChange={(e) => {
-                          const newMapData = [...mapData];
-                          newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                          setMapData(newMapData);
-                        }}
-                        className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
-                        placeholder="Value"
-                      />
+                      
+                      {selectedCell && (
+                        <Input
+                          type="number"
+                          value={mapData[selectedCell.row][selectedCell.col]}
+                          onChange={(e) => {
+                            const newMapData = [...mapData];
+                            newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
+                            setMapData(newMapData);
+                          }}
+                          className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
+                          placeholder="Value"
+                        />
+                      )}
+                      
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -414,21 +711,43 @@ const FuelMap = () => {
                         +1
                       </Button>
                     </div>
-                    <div className="text-xs text-honda-light/70">
-                      Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
-                    </div>
+                    
+                    {selectedCell && (
+                      <div className="text-xs text-honda-light/70">
+                        Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
+                      </div>
+                    )}
+                    
+                    {selectedCells.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        <div className="text-xs text-honda-light/70">
+                          {selectedCells.length} cells selected
+                        </div>
+                        <div className="flex justify-between">
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => setSelectedCells([])}
+                            className="bg-red-700 hover:bg-red-800"
+                          >
+                            Clear Selection
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-honda-light">3D View</h3>
+          <div className="h-[300px]">
+            <h3 className="text-sm font-medium text-honda-light mb-2">3D View</h3>
             <FuelMap3D 
-              mapData={isVtec ? data : mapData}
+              mapData={mapData}
               rpm={rpm}
               load={displayedLoad}
+              mapType={mapType}
             />
           </div>
         </div>
@@ -461,4 +780,10 @@ const styles = `
     background-color: #ef4444; /* Red */
     color: white;
   }
+  .grid-highlight {
+    outline: 2px solid #ffffff;
+    position: relative;
+    z-index: 10;
+  }
 `;
+

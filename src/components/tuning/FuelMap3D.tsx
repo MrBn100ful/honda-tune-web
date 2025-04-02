@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -6,15 +7,17 @@ interface FuelMap3DProps {
   mapData: number[][];
   rpm: number[];
   load: number[];
+  mapType?: string;
 }
 
-const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
+const FuelMap3D = ({ mapData, rpm, load, mapType = 'Fuel' }: FuelMap3DProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
+  const axesRef = useRef<THREE.Group | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -66,6 +69,11 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     scene.add(mesh);
     meshRef.current = mesh;
 
+    // Create axes
+    const axesGroup = new THREE.Group();
+    scene.add(axesGroup);
+    axesRef.current = axesGroup;
+
     // Improved lighting setup
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
@@ -100,9 +108,58 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     };
   }, []);
 
+  // Function to create axes with labels
+  const createAxes = (scene: THREE.Scene, maxX: number, maxY: number, maxZ: number) => {
+    if (!axesRef.current) return;
+    
+    // Clear previous axes
+    while(axesRef.current.children.length > 0) {
+      axesRef.current.remove(axesRef.current.children[0]);
+    }
+    
+    // Create X axis (RPM)
+    const xAxis = new THREE.BufferGeometry();
+    const xPoints = [
+      new THREE.Vector3(-1, -1, 0),
+      new THREE.Vector3(1, -1, 0)
+    ];
+    xAxis.setFromPoints(xPoints);
+    const xMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+    const xLine = new THREE.Line(xAxis, xMaterial);
+    axesRef.current.add(xLine);
+    
+    // Create Y axis (Load)
+    const yAxis = new THREE.BufferGeometry();
+    const yPoints = [
+      new THREE.Vector3(-1, -1, 0),
+      new THREE.Vector3(-1, 1, 0)
+    ];
+    yAxis.setFromPoints(yPoints);
+    const yMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+    const yLine = new THREE.Line(yAxis, yMaterial);
+    axesRef.current.add(yLine);
+    
+    // Create Z axis (Value)
+    const zAxis = new THREE.BufferGeometry();
+    const zPoints = [
+      new THREE.Vector3(-1, -1, 0),
+      new THREE.Vector3(-1, -1, 1)
+    ];
+    zAxis.setFromPoints(zPoints);
+    const zMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
+    const zLine = new THREE.Line(zAxis, zMaterial);
+    axesRef.current.add(zLine);
+    
+    // Add grid for XY plane
+    const gridHelper = new THREE.GridHelper(2, 10);
+    gridHelper.rotation.x = Math.PI / 2;
+    gridHelper.position.set(0, 0, 0);
+    axesRef.current.add(gridHelper);
+  };
+
   // Update mesh when data changes
   useEffect(() => {
-    if (!meshRef.current || !mapData.length || !rpm.length || !load.length) return;
+    if (!meshRef.current || !sceneRef.current || !mapData.length || !rpm.length || !load.length) return;
 
     const rows = mapData.length;
     const cols = mapData[0].length;
@@ -118,6 +175,7 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
 
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
+        // Properly align axes: X = RPM, Y = Load, Z = Value
         const x = (j / (cols - 1)) * 2 - 1;
         const y = (i / (rows - 1)) * 2 - 1;
         const z = ((mapData[i][j] - minValue) / (maxValue - minValue)) * 1.5; // Reduced height for better visualization
@@ -174,7 +232,32 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
 
     meshRef.current.geometry = geometry;
     meshRef.current.material = material;
-  }, [mapData, rpm, load]);
+    
+    // Create axes
+    if (sceneRef.current) {
+      createAxes(sceneRef.current, 1, 1, 1);
+    }
+    
+    // Add map type label
+    if (sceneRef.current && axesRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 64;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.fillStyle = '#ffffff';
+        context.font = '24px Arial';
+        context.fillText(`${mapType} Map`, 10, 40);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+        sprite.position.set(-1, 1.2, 0);
+        sprite.scale.set(2, 0.5, 1);
+        axesRef.current.add(sprite);
+      }
+    }
+  }, [mapData, rpm, load, mapType]);
 
   // Handle window resize with improved performance
   useEffect(() => {
@@ -194,10 +277,34 @@ const FuelMap3D = ({ mapData, rpm, load }: FuelMap3DProps) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Prevent wheel event propagation 
+  useEffect(() => {
+    const currentRef = containerRef.current;
+    
+    const preventScroll = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    
+    if (currentRef) {
+      currentRef.addEventListener('wheel', preventScroll, { passive: false });
+    }
+    
+    return () => {
+      if (currentRef) {
+        currentRef.removeEventListener('wheel', preventScroll);
+      }
+    };
+  }, []);
+
   return (
-    <div ref={containerRef} className="w-full h-[400px] bg-honda-dark rounded-lg overflow-hidden">
+    <div 
+      ref={containerRef} 
+      className="w-full h-[300px] bg-honda-dark rounded-lg overflow-hidden"
+      onWheel={(e) => e.stopPropagation()}
+    >
     </div>
   );
 };
 
-export default FuelMap3D; 
+export default FuelMap3D;
