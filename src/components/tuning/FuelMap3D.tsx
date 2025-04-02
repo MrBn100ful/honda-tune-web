@@ -33,7 +33,7 @@ const FuelMap3D = ({ mapData, rpm, load, mapType = 'Fuel' }: FuelMap3DProps) => 
       0.1,
       1000
     );
-    camera.position.set(5, 3, 2); // Position camera on the left side and closer
+    camera.position.set(5, 3, -2); // Position camera on the left side and closer
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
