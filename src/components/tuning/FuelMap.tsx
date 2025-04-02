@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +18,6 @@ interface CellEditorProps {
   onCancel: () => void;
 }
 
-// Map type definitions
 const MAP_TYPES = {
   FUEL: 'Fuel',
   AFR: 'AFR Target',
@@ -28,7 +26,6 @@ const MAP_TYPES = {
   BOOST: 'Boost',
 };
 
-// Sample data for the fuel map
 const generateMapData = (isVtec: boolean = false, mapType: string = MAP_TYPES.FUEL) => {
   const rpm = [800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000, 6400, 6800];
   const load = [200, 300, 400, 500, 600, 700, 800, 900, 1000];
@@ -40,40 +37,32 @@ const generateMapData = (isVtec: boolean = false, mapType: string = MAP_TYPES.FU
     for (let j = 0; j < rpm.length; j++) {
       let value = 0;
       
-      // Generate different values based on map type
       if (mapType === MAP_TYPES.FUEL) {
-        // Fuel map values (milliseconds)
-        let baseValue = isVtec ? 15 : 10; // Higher base for VTEC
+        let baseValue = isVtec ? 15 : 10;
         value = baseValue + (i * 0.8) + (j * 0.5);
         
-        if (isVtec && j > 8) { // Above 4000 RPM
-          value += (j - 8) * 0.3; // Progressive increase
+        if (isVtec && j > 8) {
+          value += (j - 8) * 0.3;
         }
       } 
       else if (mapType === MAP_TYPES.AFR) {
-        // AFR target values (lambda)
-        let baseValue = 14.7; // Stoichiometric
-        // Richer at higher loads and RPM
+        let baseValue = 14.7;
         value = baseValue - (i * 0.2) - (j * 0.1);
-        value = Math.max(value, 11.5); // Min AFR
+        value = Math.max(value, 11.5);
       }
       else if (mapType === MAP_TYPES.IGNITION) {
-        // Ignition timing values (degrees)
-        let baseValue = 15; // Base advance
-        value = baseValue + (j * 0.4) - (i * 0.6); // More advance at high rpm, less at high load
-        value = Math.max(value, 5); // Min advance
+        let baseValue = 15;
+        value = baseValue + (j * 0.4) - (i * 0.6);
+        value = Math.max(value, 5);
       }
       else if (mapType === MAP_TYPES.INJ_DUTY) {
-        // Injector duty cycle values (percentage)
-        value = 20 + (i * 5) + (j * 3); // Increases with load and RPM
-        value = Math.min(value, 85); // Max safe duty
+        value = 20 + (i * 5) + (j * 3);
+        value = Math.min(value, 85);
       }
       else if (mapType === MAP_TYPES.BOOST) {
-        // Boost target values (PSI)
-        value = Math.max(0, -5 + (i * 0.8) + (j * 0.4)); // Increases with load and RPM
+        value = Math.max(0, -5 + (i * 0.8) + (j * 0.4));
       }
       
-      // Add some variation
       value += Math.random() * 2 - 1;
       row.push(parseFloat(value.toFixed(1)));
     }
@@ -83,7 +72,6 @@ const generateMapData = (isVtec: boolean = false, mapType: string = MAP_TYPES.FU
   return { rpm, load, data };
 };
 
-// Transform map data for 3D visualization
 const transformDataFor3D = (mapData: number[][], rpm: number[], load: number[]) => {
   const result = [];
   
@@ -100,9 +88,7 @@ const transformDataFor3D = (mapData: number[][], rpm: number[], load: number[]) 
   return result;
 };
 
-// Unit converters
 const convertUnits = (value: number, fromUnit: string, toUnit: string): number => {
-  // First convert to mbar as base unit
   let inMbar = value;
   if (fromUnit !== 'mbar') {
     if (fromUnit === 'kPa') {
@@ -112,7 +98,6 @@ const convertUnits = (value: number, fromUnit: string, toUnit: string): number =
     }
   }
   
-  // Then convert from mbar to target unit
   if (toUnit === 'mbar') {
     return inMbar;
   } else if (toUnit === 'kPa') {
@@ -121,7 +106,7 @@ const convertUnits = (value: number, fromUnit: string, toUnit: string): number =
     return inMbar / 68.9476;
   }
   
-  return value; // Fallback
+  return value;
 };
 
 const getMapTypeUnit = (mapType: string): string => {
@@ -145,7 +130,6 @@ const getCellColorClass = (value: number, mapType: string, min: number, max: num
   const range = max - min;
   const normalizedValue = (value - min) / range;
   
-  // For AFR, lower is richer (red), higher is leaner (green) - inverse of other maps
   if (mapType === MAP_TYPES.AFR) {
     if (normalizedValue > 0.8) return 'cell-value-low';
     if (normalizedValue > 0.6) return 'cell-value-low-mid';
@@ -154,7 +138,6 @@ const getCellColorClass = (value: number, mapType: string, min: number, max: num
     return 'cell-value-high';
   }
   
-  // For other maps, higher values are red, lower values are green
   if (normalizedValue < 0.2) return 'cell-value-low';
   if (normalizedValue < 0.4) return 'cell-value-low-mid';
   if (normalizedValue < 0.6) return 'cell-value-mid';
@@ -213,7 +196,6 @@ const FuelMap = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [percentageAdjustment, setPercentageAdjustment] = useState<number>(5);
   
-  // Initialize map data
   useEffect(() => {
     const { rpm: newRpm, load: newLoad, data: newData } = generateMapData(isVtec, mapType);
     setRpm(newRpm);
@@ -222,8 +204,9 @@ const FuelMap = () => {
     setDisplayedLoad(newLoad);
   }, [isVtec, mapType]);
   
-  // Update displayed load when pressure unit changes
   useEffect(() => {
+    if (load.length === 0) return;
+    
     const newDisplayedLoad = load.map(value => 
       pressureUnit === 'mbar' 
         ? value 
@@ -232,10 +215,8 @@ const FuelMap = () => {
     setDisplayedLoad(newDisplayedLoad);
   }, [pressureUnit, load]);
   
-  // Handle cell selection logic
   const handleCellClick = (row: number, col: number, isMultiSelect: boolean = false) => {
     if (isMultiSelect || selectionMode) {
-      // Add or remove from selection
       const existingIndex = selectedCells.findIndex(cell => cell.row === row && cell.col === col);
       if (existingIndex > -1) {
         const newSelection = [...selectedCells];
@@ -245,20 +226,17 @@ const FuelMap = () => {
         setSelectedCells([...selectedCells, { row, col }]);
       }
     } else {
-      // Single cell selection
       setSelectedCells([]);
       setSelectedCell({ row, col });
     }
   };
   
-  // Apply a value to all selected cells or the current cell
   const adjustValue = (amount: number, isPercentage: boolean = false) => {
     if (selectedCells.length > 0) {
-      // Multi-cell adjustment
       const newMapData = [...mapData];
       selectedCells.forEach(({ row, col }) => {
         if (isPercentage) {
-          const percentChange = amount; // Percentage to change
+          const percentChange = amount;
           const currentValue = newMapData[row][col];
           const change = currentValue * (percentChange / 100);
           newMapData[row][col] = parseFloat((currentValue + change).toFixed(1));
@@ -269,12 +247,11 @@ const FuelMap = () => {
       setMapData(newMapData);
       toast.success(`Adjusted ${selectedCells.length} cells ${isPercentage ? 'by' : 'with'} ${isPercentage ? amount + '%' : amount}`);
     } else if (selectedCell) {
-      // Single cell adjustment
       const { row, col } = selectedCell;
       const newMapData = [...mapData];
       
       if (isPercentage) {
-        const percentChange = amount; // Percentage to change
+        const percentChange = amount;
         const currentValue = newMapData[row][col];
         const change = currentValue * (percentChange / 100);
         newMapData[row][col] = parseFloat((currentValue + change).toFixed(1));
@@ -286,7 +263,6 @@ const FuelMap = () => {
     }
   };
   
-  // Set exact value for selected cell
   const setExactValue = (value: number) => {
     if (!selectedCell) return;
     
@@ -297,11 +273,9 @@ const FuelMap = () => {
     setSelectedCell(null);
   };
   
-  // Select a range of cells
   const selectCellRange = (startRow: number, startCol: number, endRow: number, endCol: number) => {
     const newSelection: { row: number, col: number }[] = [];
     
-    // Ensure startRow <= endRow and startCol <= endCol
     if (startRow > endRow) [startRow, endRow] = [endRow, startRow];
     if (startCol > endCol) [startCol, endCol] = [endCol, startCol];
     
@@ -314,7 +288,6 @@ const FuelMap = () => {
     setSelectedCells(newSelection);
   };
   
-  // Toggle selection mode
   const toggleSelectionMode = () => {
     setSelectionMode(!selectionMode);
     if (!selectionMode) {
@@ -325,7 +298,6 @@ const FuelMap = () => {
     }
   };
   
-  // Prevent wheel event propagation within the chart container
   useEffect(() => {
     const currentRef = chartContainerRef.current;
     
@@ -345,11 +317,9 @@ const FuelMap = () => {
     };
   }, []);
   
-  // Calculate min and max values for color coding
-  const minValue = Math.min(...mapData.flat());
-  const maxValue = Math.max(...mapData.flat());
+  const minValue = mapData.length > 0 ? Math.min(...mapData.flat()) : 0;
+  const maxValue = mapData.length > 0 ? Math.max(...mapData.flat()) : 0;
   
-  // Handle Save Map
   const handleSaveMap = () => {
     const mapDataExport = {
       name: `${mapType} Map`,
@@ -373,7 +343,6 @@ const FuelMap = () => {
     toast.success(`${mapType} map saved successfully!`);
   };
 
-  // Handle Load Map
   const handleLoadMap = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -398,7 +367,6 @@ const FuelMap = () => {
     reader.readAsText(file);
   };
 
-  // Interpolate map - smooth values
   const interpolateMap = () => {
     if (mapData.length < 3 || mapData[0].length < 3) {
       toast.error("Map is too small to interpolate");
@@ -407,18 +375,14 @@ const FuelMap = () => {
     
     const newMapData = [...mapData];
     
-    // Create a temp copy to reference original values
     const tempMap = mapData.map(row => [...row]);
     
-    // Interpolate interior cells
     for (let i = 1; i < mapData.length - 1; i++) {
       for (let j = 1; j < mapData[i].length - 1; j++) {
-        // Skip if cell is in selection (preserve user adjustments)
         if (selectedCells.some(cell => cell.row === i && cell.col === j)) {
           continue;
         }
         
-        // Average of surrounding cells
         const avg = (
           tempMap[i-1][j-1] + tempMap[i-1][j] + tempMap[i-1][j+1] +
           tempMap[i][j-1] + tempMap[i][j+1] +
@@ -433,7 +397,6 @@ const FuelMap = () => {
     toast.success("Map interpolated successfully");
   };
 
-  // Generate a report about the current map
   const generateMapReport = () => {
     const report = {
       mapType,
@@ -456,7 +419,6 @@ const FuelMap = () => {
     
     console.log('Map Report:', report);
     
-    // Could show this in a dialog
     toast.info(`Map Report: Avg=${report.average}${getMapTypeUnit(mapType)}, Range=${report.minValue}-${report.maxValue}${getMapTypeUnit(mapType)}`);
   };
 
@@ -634,7 +596,11 @@ const FuelMap = () => {
                 <tbody>
                   {mapData.map((row, rowIdx) => (
                     <tr key={rowIdx}>
-                      <td className="grid-cell grid-header">{displayedLoad[rowIdx].toFixed(0)}</td>
+                      <td className="grid-cell grid-header">
+                        {displayedLoad && displayedLoad[rowIdx] !== undefined 
+                          ? displayedLoad[rowIdx].toFixed(0) 
+                          : "N/A"}
+                      </td>
                       {row.map((value, colIdx) => (
                         <td 
                           key={colIdx} 
@@ -653,91 +619,88 @@ const FuelMap = () => {
                 </tbody>
               </table>
 
-              {/* Cell Editor Panel */}
-              {(selectedCell || selectedCells.length > 0) && (
-                <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
-                  <div className="text-sm font-medium text-honda-light mb-4">
-                    {selectedCells.length > 0 
-                      ? `Editing ${selectedCells.length} cells` 
-                      : 'Cell Editor'}
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => adjustValue(-1)}
-                        className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                      >
-                        -1
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => adjustValue(-0.1)}
-                        className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                      >
-                        -0.1
-                      </Button>
-                      
-                      {selectedCell && (
-                        <Input
-                          type="number"
-                          value={mapData[selectedCell.row][selectedCell.col]}
-                          onChange={(e) => {
-                            const newMapData = [...mapData];
-                            newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                            setMapData(newMapData);
-                          }}
-                          className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
-                          placeholder="Value"
-                        />
-                      )}
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => adjustValue(0.1)}
-                        className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                      >
-                        +0.1
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => adjustValue(1)}
-                        className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                      >
-                        +1
-                      </Button>
-                    </div>
+              <div className="absolute top-4 right-4 bg-honda-gray p-4 rounded-md shadow-lg border border-honda-gray/50">
+                <div className="text-sm font-medium text-honda-light mb-4">
+                  {selectedCells.length > 0 
+                    ? `Editing ${selectedCells.length} cells` 
+                    : 'Cell Editor'}
+                </div>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(-1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      -1
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(-0.1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      -0.1
+                    </Button>
                     
                     {selectedCell && (
-                      <div className="text-xs text-honda-light/70">
-                        Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
-                      </div>
+                      <Input
+                        type="number"
+                        value={mapData[selectedCell.row][selectedCell.col]}
+                        onChange={(e) => {
+                          const newMapData = [...mapData];
+                          newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
+                          setMapData(newMapData);
+                        }}
+                        className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
+                        placeholder="Value"
+                      />
                     )}
                     
-                    {selectedCells.length > 0 && (
-                      <div className="flex flex-col gap-2">
-                        <div className="text-xs text-honda-light/70">
-                          {selectedCells.length} cells selected
-                        </div>
-                        <div className="flex justify-between">
-                          <Button 
-                            variant="destructive" 
-                            size="sm" 
-                            onClick={() => setSelectedCells([])}
-                            className="bg-red-700 hover:bg-red-800"
-                          >
-                            Clear Selection
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(0.1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      +0.1
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => adjustValue(1)}
+                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                    >
+                      +1
+                    </Button>
                   </div>
+                  
+                  {selectedCell && (
+                    <div className="text-xs text-honda-light/70">
+                      Selected: RPM: {rpm[selectedCell.col]}, Load: {displayedLoad[selectedCell.row].toFixed(0)} {pressureUnit}
+                    </div>
+                  )}
+                  
+                  {selectedCells.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <div className="text-xs text-honda-light/70">
+                        {selectedCells.length} cells selected
+                      </div>
+                      <div className="flex justify-between">
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => setSelectedCells([])}
+                          className="bg-red-700 hover:bg-red-800"
+                        >
+                          Clear Selection
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
@@ -758,26 +721,25 @@ const FuelMap = () => {
 
 export default FuelMap;
 
-// Add these styles to your CSS or Tailwind config
 const styles = `
   .cell-value-low {
-    background-color: #22c55e; /* Green */
+    background-color: #22c55e;
     color: white;
   }
   .cell-value-low-mid {
-    background-color: #84cc16; /* Light Green */
+    background-color: #84cc16;
     color: white;
   }
   .cell-value-mid {
-    background-color: #eab308; /* Yellow */
+    background-color: #eab308;
     color: black;
   }
   .cell-value-mid-high {
-    background-color: #f97316; /* Orange */
+    background-color: #f97316;
     color: white;
   }
   .cell-value-high {
-    background-color: #ef4444; /* Red */
+    background-color: #ef4444;
     color: white;
   }
   .grid-highlight {
@@ -786,4 +748,3 @@ const styles = `
     z-index: 10;
   }
 `;
-
