@@ -33,7 +33,7 @@ const FuelMap3D = ({ mapData, rpm, load, mapType = 'Fuel' }: FuelMap3DProps) => 
       0.1,
       1000
     );
-    camera.position.set(-5, 3, 0); // Position camera on the left side and closer
+    camera.position.set(0, 3, 0); // Position camera on the left side and closer
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
@@ -50,9 +50,9 @@ const FuelMap3D = ({ mapData, rpm, load, mapType = 'Fuel' }: FuelMap3DProps) => 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.screenSpacePanning = true;
+    controls.screenSpacePanning = false;
     controls.minDistance = 5; // Closer minimum zoom
-    controls.maxDistance = 9; // Reduced maximum zoom
+    controls.maxDistance = 20; // Reduced maximum zoom
     controls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation
     controls.minPolarAngle = 0; // Prevent going below the surface
     controls.target.set(0, 0, 0);
