@@ -23,6 +23,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     // Apply the theme to the document
     document.documentElement.classList.remove('light-theme', 'dark-theme');
     document.documentElement.classList.add(`${theme}-theme`);
+    
+    // Add or remove the dark class for Tailwind dark mode
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, [theme]);
   
   const toggleTheme = () => {

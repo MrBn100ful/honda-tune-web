@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Play, Pause, Save, Maximize2 } from "lucide-react";
+import { Play, Pause, Save, Maximize2, Thermometer, Wind, Gauge } from "lucide-react";
+import { useTheme } from "@/providers/ThemeProvider";
 
 // Generate fake data logging information
 const generateDataPoints = (count: number) => {
@@ -15,6 +16,8 @@ const generateDataPoints = (count: number) => {
   let afr = 14.7;
   let temp = 180;
   let tps = 0;
+  let speed = 0;
+  let boost = 0;
   
   for (let i = 0; i < count; i++) {
     // Add some realistic variation to the values
@@ -23,14 +26,20 @@ const generateDataPoints = (count: number) => {
       if (i > count / 2 && i < count * 0.8) {
         rpm += (Math.random() * 300) - 50;
         tps += (Math.random() * 5);
+        speed += (Math.random() * 2);
+        boost += (Math.random() * 0.3);
       } else {
         rpm += (Math.random() * 100) - 50;
         tps = Math.max(0, tps - (Math.random() * 5));
+        speed = Math.max(0, speed - (Math.random() * 1));
+        boost = Math.max(0, boost - (Math.random() * 0.2));
       }
       
       // Clamp values to realistic ranges
       rpm = Math.max(800, Math.min(8000, rpm));
       tps = Math.max(0, Math.min(100, tps));
+      speed = Math.max(0, Math.min(150, speed));
+      boost = Math.max(0, Math.min(15, boost));
       
       // AFR changes with throttle position
       const targetAfr = tps > 80 ? 12.5 : tps > 40 ? 13.5 : 14.7;
@@ -47,7 +56,9 @@ const generateDataPoints = (count: number) => {
       temp: Math.round(temp),
       tps: Math.round(tps),
       knock: Math.random() > 0.95 ? Math.random() * 5 : 0,
-      fuel: Math.round(10 + (rpm / 1000) * (tps / 20))
+      fuel: Math.round(10 + (rpm / 1000) * (tps / 20)),
+      speed: Math.round(speed),
+      boost: parseFloat(boost.toFixed(1))
     });
   }
   
@@ -57,6 +68,8 @@ const generateDataPoints = (count: number) => {
 const initialData = generateDataPoints(100);
 
 const DataLogging = () => {
+  const { theme } = useTheme();
+  const isDarkTheme = theme === 'dark';
   const [isLogging, setIsLogging] = useState(false);
   const [data, setData] = useState(initialData);
   const [lastValues, setLastValues] = useState(initialData[initialData.length - 1]);
@@ -85,6 +98,24 @@ const DataLogging = () => {
       }
       tps = Math.max(0, Math.min(100, tps));
       
+      // Simulate speed changes
+      let speed = last.speed;
+      if (Math.random() > 0.7) {
+        const rpmFactor = rpm / 1000;
+        const targetSpeed = (rpmFactor * 10) - 5; // Simplified relationship
+        speed += (targetSpeed - speed) * 0.1;
+      }
+      speed = Math.max(0, Math.min(150, speed));
+      
+      // Simulate boost changes that correlate with RPM and TPS
+      let boost = last.boost;
+      if (rpm > 2500 && tps > 30) {
+        boost += (Math.random() * 0.5) - 0.2;
+        boost = Math.max(0, Math.min(15, boost));
+      } else {
+        boost = Math.max(0, boost - (Math.random() * 0.3));
+      }
+      
       // AFR follows throttle with some delay
       const targetAfr = tps > 80 ? 12.5 : tps > 40 ? 13.5 : 14.7;
       const afr = last.afr + ((targetAfr - last.afr) * 0.1) + (Math.random() * 0.4 - 0.2);
@@ -100,7 +131,9 @@ const DataLogging = () => {
         temp: Math.round(temp),
         tps: Math.round(tps),
         knock: Math.random() > 0.95 ? Math.random() * 5 : 0,
-        fuel: Math.round(10 + (rpm / 1000) * (tps / 20))
+        fuel: Math.round(10 + (rpm / 1000) * (tps / 20)),
+        speed: Math.round(speed),
+        boost: parseFloat(boost.toFixed(1))
       };
       
       newData.push(newPoint);
@@ -121,10 +154,10 @@ const DataLogging = () => {
   };
   
   return (
-    <Card className="w-full h-full bg-honda-dark border-honda-gray">
+    <Card className={`w-full h-full ${isDarkTheme ? 'bg-honda-dark border-honda-gray' : 'bg-white border-gray-300'}`}>
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-honda-light">Data Logging</CardTitle>
+          <CardTitle className={isDarkTheme ? "text-honda-light" : "text-honda-dark"}>Data Logging</CardTitle>
           <div className="flex items-center gap-2">
             <Button 
               variant={isLogging ? "destructive" : "default"} 
@@ -145,17 +178,29 @@ const DataLogging = () => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
           <GaugeCard title="RPM" value={lastValues.rpm} max={8000} suffix="rpm" color="#e62628" />
           <GaugeCard title="AFR" value={lastValues.afr} max={20} suffix=":1" color="#0077c8" 
             warning={lastValues.afr < 12 || lastValues.afr > 15.5} />
           <GaugeCard title="TPS" value={lastValues.tps} max={100} suffix="%" color="#00c853" />
+          <GaugeCard title="Speed" value={lastValues.speed} max={150} suffix="mph" color="#9747ff" icon={<Wind size={16} />} />
+          <GaugeCard title="Boost" value={lastValues.boost} max={15} suffix="psi" color="#ff5722" icon={<Gauge size={16} />} />
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <GaugeCard title="Engine Temp" value={lastValues.temp} max={250} suffix="°F" color="#00a2ff" 
+            warning={lastValues.temp > 220} icon={<Thermometer size={16} />} />
+          <GaugeCard title="Knock Count" value={lastValues.knock} max={10} suffix="" color="#ff3e00" 
+            warning={lastValues.knock > 2} />
         </div>
         
         <Tabs defaultValue="rpm" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="rpm">RPM</TabsTrigger>
             <TabsTrigger value="afr">AFR</TabsTrigger>
+            <TabsTrigger value="temp">Temperature</TabsTrigger>
+            <TabsTrigger value="speed">Speed</TabsTrigger>
+            <TabsTrigger value="boost">Boost</TabsTrigger>
             <TabsTrigger value="multi">Multi-Parameter</TabsTrigger>
           </TabsList>
           
@@ -163,22 +208,22 @@ const DataLogging = () => {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkTheme ? "#444" : "#ddd"} />
                   <XAxis 
                     dataKey="time" 
                     tickFormatter={formatTime} 
-                    tick={{ fill: '#aaa' }}
-                    stroke="#555"
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
                   />
                   <YAxis 
                     domain={[0, 8000]} 
-                    tick={{ fill: '#aaa' }}
-                    stroke="#555"
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
                   />
                   <Tooltip 
                     formatter={(value) => [`${value} rpm`, 'RPM']}
                     labelFormatter={formatTime}
-                    contentStyle={{ backgroundColor: '#333', border: '1px solid #555' }}
+                    contentStyle={{ backgroundColor: isDarkTheme ? '#333' : '#f5f5f5', border: `1px solid ${isDarkTheme ? '#555' : '#ddd'}` }}
                     itemStyle={{ color: '#e62628' }}
                   />
                   <Line 
@@ -198,22 +243,22 @@ const DataLogging = () => {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkTheme ? "#444" : "#ddd"} />
                   <XAxis 
                     dataKey="time" 
                     tickFormatter={formatTime} 
-                    tick={{ fill: '#aaa' }}
-                    stroke="#555"
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
                   />
                   <YAxis 
                     domain={[10, 16]} 
-                    tick={{ fill: '#aaa' }}
-                    stroke="#555"
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
                   />
                   <Tooltip 
                     formatter={(value) => [`${value}:1`, 'AFR']}
                     labelFormatter={formatTime}
-                    contentStyle={{ backgroundColor: '#333', border: '1px solid #555' }}
+                    contentStyle={{ backgroundColor: isDarkTheme ? '#333' : '#f5f5f5', border: `1px solid ${isDarkTheme ? '#555' : '#ddd'}` }}
                     itemStyle={{ color: '#0077c8' }}
                   />
                   <Line 
@@ -229,39 +274,146 @@ const DataLogging = () => {
             </div>
           </TabsContent>
           
+          <TabsContent value="temp" className="mt-0">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkTheme ? "#444" : "#ddd"} />
+                  <XAxis 
+                    dataKey="time" 
+                    tickFormatter={formatTime} 
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
+                  />
+                  <YAxis 
+                    domain={[160, 240]} 
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`${value}°F`, 'Temperature']}
+                    labelFormatter={formatTime}
+                    contentStyle={{ backgroundColor: isDarkTheme ? '#333' : '#f5f5f5', border: `1px solid ${isDarkTheme ? '#555' : '#ddd'}` }}
+                    itemStyle={{ color: '#00a2ff' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="temp" 
+                    stroke="#00a2ff" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="speed" className="mt-0">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkTheme ? "#444" : "#ddd"} />
+                  <XAxis 
+                    dataKey="time" 
+                    tickFormatter={formatTime} 
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
+                  />
+                  <YAxis 
+                    domain={[0, 150]} 
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`${value} mph`, 'Speed']}
+                    labelFormatter={formatTime}
+                    contentStyle={{ backgroundColor: isDarkTheme ? '#333' : '#f5f5f5', border: `1px solid ${isDarkTheme ? '#555' : '#ddd'}` }}
+                    itemStyle={{ color: '#9747ff' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="speed" 
+                    stroke="#9747ff" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="boost" className="mt-0">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkTheme ? "#444" : "#ddd"} />
+                  <XAxis 
+                    dataKey="time" 
+                    tickFormatter={formatTime} 
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
+                  />
+                  <YAxis 
+                    domain={[0, 15]} 
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`${value} psi`, 'Boost']}
+                    labelFormatter={formatTime}
+                    contentStyle={{ backgroundColor: isDarkTheme ? '#333' : '#f5f5f5', border: `1px solid ${isDarkTheme ? '#555' : '#ddd'}` }}
+                    itemStyle={{ color: '#ff5722' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="boost" 
+                    stroke="#ff5722" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </TabsContent>
+          
           <TabsContent value="multi" className="mt-0">
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkTheme ? "#444" : "#ddd"} />
                   <XAxis 
                     dataKey="time" 
                     tickFormatter={formatTime} 
-                    tick={{ fill: '#aaa' }}
-                    stroke="#555"
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
                   />
                   <YAxis 
                     yAxisId="left"
                     domain={[0, 8000]} 
-                    tick={{ fill: '#aaa' }}
-                    stroke="#555"
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
                   />
                   <YAxis 
                     yAxisId="right"
                     orientation="right"
-                    domain={[10, 16]} 
-                    tick={{ fill: '#aaa' }}
-                    stroke="#555"
+                    domain={[0, 15]} 
+                    tick={{ fill: isDarkTheme ? '#aaa' : '#333' }}
+                    stroke={isDarkTheme ? "#555" : "#aaa"}
                   />
                   <Tooltip 
                     formatter={(value, name) => {
                       if (name === 'rpm') return [`${value} rpm`, 'RPM'];
                       if (name === 'afr') return [`${value}:1`, 'AFR'];
                       if (name === 'tps') return [`${value}%`, 'TPS'];
+                      if (name === 'speed') return [`${value} mph`, 'Speed'];
+                      if (name === 'boost') return [`${value} psi`, 'Boost'];
                       return [value, name];
                     }}
                     labelFormatter={formatTime}
-                    contentStyle={{ backgroundColor: '#333', border: '1px solid #555' }}
+                    contentStyle={{ backgroundColor: isDarkTheme ? '#333' : '#f5f5f5', border: `1px solid ${isDarkTheme ? '#555' : '#ddd'}` }}
                   />
                   <Legend />
                   <Line 
@@ -291,6 +443,24 @@ const DataLogging = () => {
                     dot={false}
                     activeDot={{ r: 4 }}
                   />
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="speed" 
+                    stroke="#9747ff" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="boost" 
+                    stroke="#ff5722" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -308,20 +478,26 @@ interface GaugeCardProps {
   suffix: string;
   color: string;
   warning?: boolean;
+  icon?: React.ReactNode;
 }
 
-const GaugeCard = ({ title, value, max, suffix, color, warning = false }: GaugeCardProps) => {
+const GaugeCard = ({ title, value, max, suffix, color, warning = false, icon }: GaugeCardProps) => {
+  const { theme } = useTheme();
+  const isDarkTheme = theme === 'dark';
   const percentage = (value / max) * 100;
   
   return (
-    <div className={`bg-honda-gray rounded-md p-3 ${warning ? 'border border-honda-red' : ''}`}>
+    <div className={`${isDarkTheme ? 'bg-honda-gray' : 'bg-gray-100'} rounded-md p-3 ${warning ? 'border border-honda-red' : ''}`}>
       <div className="flex justify-between items-center mb-1">
-        <h3 className="text-sm text-honda-light">{title}</h3>
-        <span className={`text-xl font-bold ${warning ? 'text-honda-red' : 'text-white'}`}>
+        <h3 className={`text-sm ${isDarkTheme ? 'text-honda-light' : 'text-honda-dark'} flex items-center gap-1`}>
+          {icon ? icon : null}
+          {title}
+        </h3>
+        <span className={`text-xl font-bold ${warning ? 'text-honda-red' : isDarkTheme ? 'text-white' : 'text-honda-dark'}`} style={{ color: warning ? '#e62628' : color }}>
           {value}{suffix}
         </span>
       </div>
-      <div className="w-full bg-honda-dark rounded-full h-2.5">
+      <div className={`w-full ${isDarkTheme ? 'bg-honda-dark' : 'bg-gray-200'} rounded-full h-2.5`}>
         <div 
           className="h-2.5 rounded-full" 
           style={{ width: `${percentage}%`, backgroundColor: color }}
