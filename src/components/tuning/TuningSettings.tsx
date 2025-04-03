@@ -621,7 +621,7 @@ const TuningSettings = () => {
   };
   
   return (
-    <>
+    <React.Fragment>
       <Card className="w-full h-full bg-honda-dark border-honda-gray">
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
@@ -732,7 +732,7 @@ const TuningSettings = () => {
                   </div>
                   
                   {selectedEngine.vtecSupported && (
-                    <>
+                    <React.Fragment>
                       <div className="flex items-center space-x-2">
                         <Switch 
                           id="vtec" 
@@ -760,4 +760,40 @@ const TuningSettings = () => {
                           </div>
                         </div>
                       )}
-                    </
+                    </React.Fragment>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="transmission" className="pt-4">
+              {/* Transmission content */}
+            </TabsContent>
+            
+            <TabsContent value="fuel" className="pt-4">
+              {/* Fuel content */}
+            </TabsContent>
+            
+            <TabsContent value="ignition" className="pt-4">
+              {/* Ignition content */}
+            </TabsContent>
+            
+            <TabsContent value="launch" className="pt-4">
+              {/* Launch Control content */}
+            </TabsContent>
+            
+            <TabsContent value="boost" className="pt-4">
+              {/* Boost Control content */}
+            </TabsContent>
+            
+            <TabsContent value="connection" className="pt-4">
+              {/* Connection content */}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </React.Fragment>
+  );
+};
+
+export default TuningSettings;
