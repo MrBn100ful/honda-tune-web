@@ -33,7 +33,7 @@ interface TransmissionData {
   finalDrive: number;
 }
 
-// Engine database
+// Engine database with converted torque values (lb-ft to Nm)
 const ENGINES: EngineData[] = [
   {
     name: "B16A VTEC",
@@ -45,7 +45,7 @@ const ENGINES: EngineData[] = [
     vtecSupported: true,
     vtecPoint: 5500,
     maxHP: 160,
-    maxTorque: 150
+    maxTorque: 203
   },
   {
     name: "B18C Type R",
@@ -57,7 +57,7 @@ const ENGINES: EngineData[] = [
     vtecSupported: true,
     vtecPoint: 5700,
     maxHP: 200,
-    maxTorque: 178
+    maxTorque: 241
   },
   {
     name: "K20A Type R",
@@ -69,7 +69,7 @@ const ENGINES: EngineData[] = [
     vtecSupported: true,
     vtecPoint: 5800,
     maxHP: 220,
-    maxTorque: 215
+    maxTorque: 291
   },
   {
     name: "F20C S2000",
@@ -81,7 +81,7 @@ const ENGINES: EngineData[] = [
     vtecSupported: true,
     vtecPoint: 6000,
     maxHP: 240,
-    maxTorque: 208
+    maxTorque: 282
   },
   {
     name: "K24A",
@@ -93,7 +93,7 @@ const ENGINES: EngineData[] = [
     vtecSupported: true,
     vtecPoint: 5400,
     maxHP: 190,
-    maxTorque: 230
+    maxTorque: 312
   },
   {
     name: "D16Z6 VTEC",
@@ -105,7 +105,7 @@ const ENGINES: EngineData[] = [
     vtecSupported: true,
     vtecPoint: 4800,
     maxHP: 125,
-    maxTorque: 138
+    maxTorque: 187
   },
   {
     name: "H22A Prelude",
@@ -117,7 +117,7 @@ const ENGINES: EngineData[] = [
     vtecSupported: true,
     vtecPoint: 5200,
     maxHP: 200,
-    maxTorque: 215
+    maxTorque: 291
   },
   {
     name: "D15B Non-VTEC",
@@ -128,7 +128,7 @@ const ENGINES: EngineData[] = [
     defaultRevLimit: 6800,
     vtecSupported: false,
     maxHP: 105,
-    maxTorque: 130
+    maxTorque: 176
   }
 ];
 
@@ -469,10 +469,12 @@ const TuningSettings = () => {
                       <div className="text-honda-light font-medium">{selectedEngine.cylinders}</div>
                       
                       <div className="text-honda-light/70">Max Power:</div>
-                      <div className="text-honda-light font-medium">{selectedEngine.maxHP || "-"} hp</div>
+                      <div className="text-honda-light font-medium">
+                        {selectedEngine.maxHP || "-"} HP ({selectedEngine.maxHP ? Math.round(selectedEngine.maxHP * 0.7457) : "-"} kW)
+                      </div>
                       
                       <div className="text-honda-light/70">Max Torque:</div>
-                      <div className="text-honda-light font-medium">{selectedEngine.maxTorque || "-"} lb-ft</div>
+                      <div className="text-honda-light font-medium">{selectedEngine.maxTorque || "-"} Nm</div>
                       
                       <div className="text-honda-light/70">VTEC:</div>
                       <div className="text-honda-light font-medium">{selectedEngine.vtecSupported ? "Yes" : "No"}</div>
