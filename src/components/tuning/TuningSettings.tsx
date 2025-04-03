@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, RotateCcw, Upload, Download, Settings2 } from "lucide-react";
+import { Save, RotateCcw, Upload, Download, Settings2, Cpu, Gauge, BarChart2, Fuel, Zap, Flag, Database, Cable } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
@@ -166,6 +166,171 @@ const TRANSMISSIONS: TransmissionData[] = [
   }
 ];
 
+// Initial setup dialog component
+const SetupWizard = ({ isOpen, onClose, onComplete }) => {
+  const [step, setStep] = useState(1);
+  const [selectedEngine, setSelectedEngine] = useState("b16a");
+  const [selectedTransmission, setSelectedTransmission] = useState("b-series-m5");
+  const [injectorSize, setInjectorSize] = useState(240);
+  
+  const handleComplete = () => {
+    onComplete({
+      engine: selectedEngine,
+      transmission: selectedTransmission,
+      injectorSize: injectorSize
+    });
+    onClose();
+  };
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
+      <Card className="w-[90vw] max-w-[500px] max-h-[90vh] overflow-auto bg-honda-dark border-honda-gray">
+        <CardHeader>
+          <CardTitle className="text-honda-light">Honda ECU Setup Wizard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {step === 1 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-honda-light">Step 1: Select Your Engine</h3>
+              <p className="text-honda-light/80 text-sm mb-4">Choose the engine type you're working with:</p>
+              
+              <div className="space-y-2">
+                <Select value={selectedEngine} onValueChange={setSelectedEngine}>
+                  <SelectTrigger className="bg-honda-gray border-honda-gray">
+                    <SelectValue placeholder="Select Engine Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ENGINES.map(engine => (
+                      <SelectItem key={engine.code} value={engine.code}>
+                        <div className="flex items-center">
+                          <Cpu className="mr-2 h-4 w-4" />
+                          <span>{engine.name} ({engine.displacement}L)</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {selectedEngine && (
+                  <div className="rounded-md border border-honda-gray p-4 mt-4">
+                    <h4 className="text-sm font-medium text-honda-light mb-2">Engine Specs</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-honda-light/70">Displacement:</div>
+                      <div className="text-honda-light font-medium">
+                        {ENGINES.find(e => e.code === selectedEngine)?.displacement}L
+                      </div>
+                      
+                      <div className="text-honda-light/70">Max Power:</div>
+                      <div className="text-honda-light font-medium">
+                        {ENGINES.find(e => e.code === selectedEngine)?.maxHP || "-"} HP 
+                        ({ENGINES.find(e => e.code === selectedEngine)?.maxHP 
+                          ? Math.round(ENGINES.find(e => e.code === selectedEngine)?.maxHP * 0.7457) 
+                          : "-"} kW)
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end">
+                <Button onClick={() => setStep(2)} className="bg-honda-red">Next Step</Button>
+              </div>
+            </div>
+          )}
+          
+          {step === 2 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-honda-light">Step 2: Select Your Transmission</h3>
+              <p className="text-honda-light/80 text-sm mb-4">Choose the transmission type:</p>
+              
+              <div className="space-y-2">
+                <Select value={selectedTransmission} onValueChange={setSelectedTransmission}>
+                  <SelectTrigger className="bg-honda-gray border-honda-gray">
+                    <SelectValue placeholder="Select Transmission Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRANSMISSIONS.map(trans => (
+                      <SelectItem key={trans.code} value={trans.code}>
+                        <div className="flex items-center">
+                          <Gauge className="mr-2 h-4 w-4" />
+                          <span>{trans.type} ({trans.gearRatios.length}-Speed)</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {selectedTransmission && (
+                  <div className="rounded-md border border-honda-gray p-4 mt-4">
+                    <h4 className="text-sm font-medium text-honda-light mb-2">Gear Ratios</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {TRANSMISSIONS.find(t => t.code === selectedTransmission)?.gearRatios.map((ratio, idx) => (
+                        <React.Fragment key={idx}>
+                          <div className="text-honda-light/70">Gear {idx + 1}:</div>
+                          <div className="text-honda-light font-medium">{ratio.toFixed(2)}:1</div>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-between">
+                <Button onClick={() => setStep(1)} variant="outline" className="border-honda-gray text-honda-light">Back</Button>
+                <Button onClick={() => setStep(3)} className="bg-honda-red">Next Step</Button>
+              </div>
+            </div>
+          )}
+          
+          {step === 3 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-honda-light">Step 3: Injector Setup</h3>
+              <p className="text-honda-light/80 text-sm mb-4">Configure your fuel injectors:</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="injector-size" className="text-honda-light">Injector Size (cc/min)</Label>
+                  <div className="flex items-center gap-4">
+                    <Slider
+                      value={[injectorSize]}
+                      max={1000}
+                      min={190}
+                      step={10}
+                      onValueChange={(value) => setInjectorSize(value[0])}
+                      className="flex-1"
+                    />
+                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                      {injectorSize}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="rounded-md border border-honda-gray p-4 mt-2">
+                  <h4 className="text-sm font-medium text-honda-light mb-2">Injector Details</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-honda-light/70">Size:</div>
+                    <div className="text-honda-light font-medium">{injectorSize} cc/min</div>
+                    
+                    <div className="text-honda-light/70">Flow Rate:</div>
+                    <div className="text-honda-light font-medium">{(injectorSize / 14.4).toFixed(1)} g/s</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-between">
+                <Button onClick={() => setStep(2)} variant="outline" className="border-honda-gray text-honda-light">Back</Button>
+                <Button onClick={handleComplete} className="bg-honda-red">Complete Setup</Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const TuningSettings = () => {
   // Engine configuration
   const [engineType, setEngineType] = useState("b16a");
@@ -176,7 +341,7 @@ const TuningSettings = () => {
   // General settings
   const [injectorSize, setInjectorSize] = useState(240);
   const [boostByGear, setBoostByGear] = useState(false);
-  const [gearBoostLimits, setGearBoostLimits] = useState<number[]>([5, 8, 10, 12, 15, 15]);
+  const [gearBoostLimits, setGearBoostLimits] = useState<number[]>([0.3, 0.5, 0.7, 0.8, 1.0, 1.0]);
   const [popcornMode, setPopcornMode] = useState(false);
   const [launchControl, setLaunchControl] = useState(true);
   const [launchRpm, setLaunchRpm] = useState(4200);
@@ -190,7 +355,7 @@ const TuningSettings = () => {
   // Fuel settings
   const [targetAfrCruise, setTargetAfrCruise] = useState(14.7);
   const [targetAfrWot, setTargetAfrWot] = useState(12.2);
-  const [fuelPressure, setFuelPressure] = useState(45);
+  const [fuelPressure, setFuelPressure] = useState(3.0);
   const [fuelType, setFuelType] = useState("gasoline");
   const [accelEnrichment, setAccelEnrichment] = useState(true);
   
@@ -206,6 +371,30 @@ const TuningSettings = () => {
   const [launchTimingRetard, setLaunchTimingRetard] = useState(8);
   const [twoStep, setTwoStep] = useState(true);
   const [antilag, setAntilag] = useState(false);
+
+  // Connection settings
+  const [rtpInputs, setRtpInputs] = useState([
+    { pin: "A1", type: "analog", usage: "MAP Sensor", scaling: "3 bar" },
+    { pin: "A2", type: "analog", usage: "TPS Sensor", scaling: "0-5V" },
+    { pin: "A3", type: "analog", usage: "IAT Sensor", scaling: "Thermistor" },
+    { pin: "A4", type: "analog", usage: "CLT Sensor", scaling: "Thermistor" },
+    { pin: "D1", type: "digital", usage: "VSS Input", scaling: "Frequency" },
+    { pin: "D2", type: "digital", usage: "Crank Trigger", scaling: "Falling Edge" },
+    { pin: "D3", type: "digital", usage: "Cam Position", scaling: "Rising Edge" },
+  ]);
+  
+  const [rtpOutputs, setRtpOutputs] = useState([
+    { pin: "OUT1", type: "injector", usage: "Injector 1-2", current: "2A" },
+    { pin: "OUT2", type: "injector", usage: "Injector 3-4", current: "2A" },
+    { pin: "OUT3", type: "ignition", usage: "Ignition 1-4", current: "1A" },
+    { pin: "OUT4", type: "solenoid", usage: "VTEC Solenoid", current: "1A" },
+    { pin: "OUT5", type: "solenoid", usage: "Boost Control", current: "1A" },
+    { pin: "OUT6", type: "relay", usage: "Fuel Pump", current: "5A" },
+  ]);
+  
+  // Setup wizard state
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [hasCompletedSetup, setHasCompletedSetup] = useState(false);
   
   // Update settings when engine/transmission is changed
   useEffect(() => {
@@ -230,10 +419,30 @@ const TuningSettings = () => {
       setSelectedTransmission(transmission);
       // Initialize boost by gear limits based on number of gears
       setGearBoostLimits(Array(transmission.gearRatios.length).fill(0).map((_, i) => 
-        Math.min(5 + i * 2, 15) // Progressive boost limits by gear
+        Math.min(0.3 + i * 0.15, 1.0) // Progressive boost limits by gear (in bar)
       ));
     }
   }, [transmissionType]);
+
+  // Check if this is the first load
+  useEffect(() => {
+    const setupCompleted = localStorage.getItem('ecuSetupCompleted');
+    if (!setupCompleted) {
+      setShowSetupWizard(true);
+    } else {
+      setHasCompletedSetup(true);
+      // Load saved settings here if needed
+    }
+  }, []);
+
+  const handleSetupComplete = (settings) => {
+    setEngineType(settings.engine);
+    setTransmissionType(settings.transmission);
+    setInjectorSize(settings.injectorSize);
+    setHasCompletedSetup(true);
+    localStorage.setItem('ecuSetupCompleted', 'true');
+    toast.success("Initial setup completed");
+  };
 
   const handleReset = () => {
     // Reset all values to the defaults for the selected engine
@@ -253,7 +462,7 @@ const TuningSettings = () => {
     setIacEnabled(true);
     setTargetAfrCruise(14.7);
     setTargetAfrWot(12.2);
-    setFuelPressure(45);
+    setFuelPressure(3.0);
     setFuelType("gasoline");
     setAccelEnrichment(true);
     setBaseTiming(16);
@@ -313,6 +522,10 @@ const TuningSettings = () => {
         popcornMode,
         mapSensor,
         iacEnabled
+      },
+      connection: {
+        inputs: rtpInputs,
+        outputs: rtpOutputs
       }
     };
     
@@ -391,6 +604,12 @@ const TuningSettings = () => {
           setMapSensor(settings.other.mapSensor);
           setIacEnabled(settings.other.iacEnabled);
         }
+
+        // Load connection settings
+        if (settings.connection) {
+          if (settings.connection.inputs) setRtpInputs(settings.connection.inputs);
+          if (settings.connection.outputs) setRtpOutputs(settings.connection.outputs);
+        }
         
         toast.success("Settings loaded successfully");
       } catch (error) {
@@ -402,680 +621,143 @@ const TuningSettings = () => {
   };
   
   return (
-    <Card className="w-full h-full bg-honda-dark border-honda-gray">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-honda-light">ECU Settings</CardTitle>
-          <div className="flex gap-2">
-            <input
-              type="file"
-              id="load-settings"
-              accept=".json"
-              onChange={handleLoad}
-              className="hidden"
-            />
-            <label htmlFor="load-settings">
-              <Button variant="outline" size="sm" className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark cursor-pointer" asChild>
-                <span><Upload size={16} className="mr-1" /> Load</span>
+    <>
+      <Card className="w-full h-full bg-honda-dark border-honda-gray">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-honda-light">ECU Settings</CardTitle>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowSetupWizard(true)} 
+                className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+              >
+                <Settings2 size={16} className="mr-1" /> Setup Wizard
               </Button>
-            </label>
-            <Button variant="outline" size="sm" onClick={handleReset} className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark">
-              <RotateCcw size={16} className="mr-1" /> Reset
-            </Button>
-            <Button variant="default" size="sm" className="bg-honda-red" onClick={handleSave}>
-              <Save size={16} className="mr-1" /> Save
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="overflow-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
-        <Tabs defaultValue="engine">
-          <TabsList>
-            <TabsTrigger value="engine">Engine Setup</TabsTrigger>
-            <TabsTrigger value="transmission">Transmission</TabsTrigger>
-            <TabsTrigger value="fuel">Fuel</TabsTrigger>
-            <TabsTrigger value="ignition">Ignition</TabsTrigger>
-            <TabsTrigger value="launch">Launch Control</TabsTrigger>
-            <TabsTrigger value="boost">Boost Control</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="engine" className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="engine-type" className="text-honda-light">Engine Type</Label>
-                  <Select value={engineType} onValueChange={setEngineType}>
-                    <SelectTrigger id="engine-type" className="bg-honda-gray border-honda-gray">
-                      <SelectValue placeholder="Select Engine Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ENGINES.map(engine => (
-                        <SelectItem key={engine.code} value={engine.code}>
-                          {engine.name} ({engine.displacement}L)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {selectedEngine && (
-                  <div className="rounded-md border border-honda-gray p-4">
-                    <h3 className="text-sm font-medium text-honda-light mb-2">Engine Specs</h3>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="text-honda-light/70">Displacement:</div>
-                      <div className="text-honda-light font-medium">{selectedEngine.displacement}L</div>
-                      
-                      <div className="text-honda-light/70">Cylinders:</div>
-                      <div className="text-honda-light font-medium">{selectedEngine.cylinders}</div>
-                      
-                      <div className="text-honda-light/70">Max Power:</div>
-                      <div className="text-honda-light font-medium">
-                        {selectedEngine.maxHP || "-"} HP ({selectedEngine.maxHP ? Math.round(selectedEngine.maxHP * 0.7457) : "-"} kW)
-                      </div>
-                      
-                      <div className="text-honda-light/70">Max Torque:</div>
-                      <div className="text-honda-light font-medium">{selectedEngine.maxTorque || "-"} Nm</div>
-                      
-                      <div className="text-honda-light/70">VTEC:</div>
-                      <div className="text-honda-light font-medium">{selectedEngine.vtecSupported ? "Yes" : "No"}</div>
-                    </div>
-                  </div>
-                )}
-                
-                <div>
-                  <Label htmlFor="injector-size" className="text-honda-light">Injector Size (cc/min)</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[injectorSize]}
-                      max={1000}
-                      min={190}
-                      step={10}
-                      onValueChange={(value) => setInjectorSize(value[0])}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      {injectorSize}
-                    </div>
-                  </div>
-                </div>
-                
-                {selectedEngine.vtecSupported && (
-                  <>
-                    <div className="flex items-center space-x-2">
-                      <Switch 
-                        id="vtec" 
-                        checked={vtecEnabled}
-                        onCheckedChange={setVtecEnabled}
-                      />
-                      <Label htmlFor="vtec" className="text-honda-light">VTEC Enabled</Label>
-                    </div>
-                    
-                    {vtecEnabled && (
-                      <div>
-                        <Label htmlFor="vtec-point" className="text-honda-light">VTEC Engagement (RPM)</Label>
-                        <div className="flex items-center gap-4">
-                          <Slider
-                            value={[vtecPoint]}
-                            max={7000}
-                            min={3000}
-                            step={100}
-                            onValueChange={(value) => setVtecPoint(value[0])}
-                            className="flex-1"
-                          />
-                          <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                            {vtecPoint}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="map-sensor" className="text-honda-light">MAP Sensor Type</Label>
-                  <Select value={mapSensor} onValueChange={setMapSensor}>
-                    <SelectTrigger id="map-sensor" className="bg-honda-gray border-honda-gray">
-                      <SelectValue placeholder="Select MAP Sensor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2bar">2 Bar (29 PSI)</SelectItem>
-                      <SelectItem value="3bar">3 Bar (44 PSI)</SelectItem>
-                      <SelectItem value="4bar">4 Bar (58 PSI)</SelectItem>
-                      <SelectItem value="5bar">5 Bar (73 PSI)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label className="text-honda-light">Rev Limiter (RPM)</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[revLimiter]}
-                      max={9500}
-                      min={6000}
-                      step={100}
-                      onValueChange={(value) => setRevLimiter(value[0])}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      {revLimiter}
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-honda-light">Idle RPM</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[idleRpm]}
-                      max={1500}
-                      min={600}
-                      step={50}
-                      onValueChange={(value) => setIdleRpm(value[0])}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      {idleRpm}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="iac" 
-                    checked={iacEnabled}
-                    onCheckedChange={setIacEnabled}
-                  />
-                  <Label htmlFor="iac" className="text-honda-light">IAC Control Enabled</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="popcorn" 
-                    checked={popcornMode}
-                    onCheckedChange={setPopcornMode}
-                  />
-                  <Label htmlFor="popcorn" className="text-honda-light">Popcorn Mode (Anti-Lag)</Label>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="transmission" className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="transmission-type" className="text-honda-light">Transmission Type</Label>
-                  <Select value={transmissionType} onValueChange={setTransmissionType}>
-                    <SelectTrigger id="transmission-type" className="bg-honda-gray border-honda-gray">
-                      <SelectValue placeholder="Select Transmission Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TRANSMISSIONS.map(trans => (
-                        <SelectItem key={trans.code} value={trans.code}>
-                          {trans.type} ({trans.gearRatios.length}-Speed)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {selectedTransmission && (
-                  <div className="rounded-md border border-honda-gray p-4">
-                    <h3 className="text-sm font-medium text-honda-light mb-2">Gear Ratios</h3>
-                    <div className="space-y-2">
-                      {selectedTransmission.gearRatios.map((ratio, idx) => (
-                        <div key={idx} className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-honda-light/70">Gear {idx + 1}:</div>
-                          <div className="text-honda-light font-medium">{ratio.toFixed(2)}:1</div>
-                        </div>
-                      ))}
-                      <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t border-honda-gray/30 mt-2">
-                        <div className="text-honda-light/70">Final Drive:</div>
-                        <div className="text-honda-light font-medium">{selectedTransmission.finalDrive.toFixed(2)}:1</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="boost-by-gear" 
-                    checked={boostByGear}
-                    onCheckedChange={setBoostByGear}
-                  />
-                  <Label htmlFor="boost-by-gear" className="text-honda-light">Enable Boost by Gear</Label>
-                </div>
-              </div>
-              
-              {boostByGear && selectedTransmission && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-honda-light">Boost Target by Gear (PSI)</h3>
-                  
-                  {selectedTransmission.gearRatios.map((_, idx) => (
-                    <div key={idx} className="space-y-1">
-                      <Label className="text-honda-light">Gear {idx + 1} Max Boost</Label>
-                      <div className="flex items-center gap-4">
-                        <Slider
-                          value={[gearBoostLimits[idx] || 0]}
-                          max={30}
-                          min={0}
-                          step={0.5}
-                          onValueChange={(value) => {
-                            const newLimits = [...gearBoostLimits];
-                            newLimits[idx] = value[0];
-                            setGearBoostLimits(newLimits);
-                          }}
-                          className="flex-1"
-                        />
-                        <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                          {(gearBoostLimits[idx] || 0).toFixed(1)} PSI
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Create progressive boost curve
-                      const maxGears = selectedTransmission.gearRatios.length;
-                      const newLimits = Array(maxGears).fill(0).map((_, i) => {
-                        // Start lower in 1st gear, ramp up progressively
-                        return Math.min(5 + (i * 2), 15);
-                      });
-                      setGearBoostLimits(newLimits);
-                    }}
-                    className="mt-2 bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                  >
-                    <Settings2 size={14} className="mr-1" />
-                    Progressive Curve
-                  </Button>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="fuel" className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="target-afr" className="text-honda-light">Target AFR (Cruise)</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[targetAfrCruise]}
-                      max={16}
-                      min={13}
-                      step={0.1}
-                      onValueChange={(value) => setTargetAfrCruise(value[0])}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      {targetAfrCruise.toFixed(1)}
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="target-afr-wot" className="text-honda-light">Target AFR (WOT)</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[targetAfrWot]}
-                      max={14}
-                      min={11}
-                      step={0.1}
-                      onValueChange={(value) => setTargetAfrWot(value[0])}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      {targetAfrWot.toFixed(1)}
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="fuel-pressure" className="text-honda-light">Fuel Pressure (psi)</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[fuelPressure]}
-                      max={90}
-                      min={30}
-                      step={1}
-                      onValueChange={(value) => setFuelPressure(value[0])}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      {fuelPressure}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="fuel-type" className="text-honda-light">Fuel Type</Label>
-                  <Select value={fuelType} onValueChange={setFuelType}>
-                    <SelectTrigger id="fuel-type" className="bg-honda-gray border-honda-gray">
-                      <SelectValue placeholder="Select Fuel Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gasoline-87">Regular (87 Octane)</SelectItem>
-                      <SelectItem value="gasoline">Premium (91-93 Octane)</SelectItem>
-                      <SelectItem value="e85">E85</SelectItem>
-                      <SelectItem value="ethanol">Pure Ethanol</SelectItem>
-                      <SelectItem value="race">Race Fuel (100+ Octane)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="accel-enrichment" 
-                    checked={accelEnrichment}
-                    onCheckedChange={setAccelEnrichment}
-                  />
-                  <Label htmlFor="accel-enrichment" className="text-honda-light">Acceleration Enrichment</Label>
-                </div>
-                
-                <div className="rounded-md border border-honda-gray p-4">
-                  <h3 className="text-sm font-medium text-honda-light mb-2">Injector Details</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="text-honda-light/70">Size:</div>
-                    <div className="text-honda-light font-medium">{injectorSize} cc/min</div>
-                    
-                    <div className="text-honda-light/70">Flow Rate:</div>
-                    <div className="text-honda-light font-medium">{(injectorSize / 10.5).toFixed(1)} lb/hr</div>
-                    
-                    <div className="text-honda-light/70">Max Theoretical HP:</div>
-                    <div className="text-honda-light font-medium">
-                      {Math.round(injectorSize * selectedEngine.cylinders * 0.07)} hp <span className="text-xs text-honda-light/50">(E85)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="ignition" className="space-y-6 pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="timing-base" className="text-honda-light">Base Timing (degrees)</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[baseTiming]}
-                      max={25}
-                      min={10}
-                      step={1}
-                      onValueChange={(value) => setBaseTiming(value[0])}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      {baseTiming}°
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="knock-retard" className="text-honda-light">Knock Retard (degrees)</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[knockRetard]}
-                      max={10}
-                      min={1}
-                      step={0.5}
-                      onValueChange={(value) => setKnockRetard(value[0])}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      {knockRetard}°
-                    </div>
-                  </div>
-                </div>
-                
-                {popcornMode && (
-                  <div>
-                    <Label htmlFor="popcorn-retard" className="text-honda-light">Popcorn Mode Retard (degrees)</Label>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[popcornRetard]}
-                        max={20}
-                        min={5}
-                        step={1}
-                        onValueChange={(value) => setPopcornRetard(value[0])}
-                        className="flex-1"
-                      />
-                      <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                        {popcornRetard}°
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-6">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="knock-detection" 
-                    checked={knockDetection}
-                    onCheckedChange={setKnockDetection}
-                  />
-                  <Label htmlFor="knock-detection" className="text-honda-light">Knock Detection</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="timing-comp" 
-                    checked={timingComp}
-                    onCheckedChange={setTimingComp}
-                  />
-                  <Label htmlFor="timing-comp" className="text-honda-light">Temperature Compensation</Label>
-                </div>
-                
-                <div className="rounded-md border border-honda-gray p-4">
-                  <h3 className="text-sm font-medium text-honda-light mb-2">Ignition Settings Info</h3>
-                  <p className="text-xs text-honda-light/70 mb-2">
-                    Base timing represents the static timing setting. Actual ignition timing will vary based on
-                    the timing map, temperature, and load conditions.
-                  </p>
-                  <p className="text-xs text-honda-light/70">
-                    Knock detection will automatically retard timing when knock is detected to protect the engine.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="launch" className="pt-4">
-            <div className="flex items-center space-x-2 mb-4">
-              <Switch 
-                id="launch-control" 
-                checked={launchControl}
-                onCheckedChange={setLaunchControl}
+              <input
+                type="file"
+                id="load-settings"
+                accept=".json"
+                onChange={handleLoad}
+                className="hidden"
               />
-              <Label htmlFor="launch-control" className="text-honda-light">Enable Launch Control</Label>
+              <label htmlFor="load-settings">
+                <Button variant="outline" size="sm" className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark cursor-pointer" asChild>
+                  <span><Upload size={16} className="mr-1" /> Load</span>
+                </Button>
+              </label>
+              <Button variant="outline" size="sm" onClick={handleReset} className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark">
+                <RotateCcw size={16} className="mr-1" /> Reset
+              </Button>
+              <Button variant="default" size="sm" className="bg-honda-red" onClick={handleSave}>
+                <Save size={16} className="mr-1" /> Save
+              </Button>
             </div>
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
+          <Tabs defaultValue="engine">
+            <TabsList>
+              <TabsTrigger value="engine">Engine Setup</TabsTrigger>
+              <TabsTrigger value="transmission">Transmission</TabsTrigger>
+              <TabsTrigger value="fuel">Fuel</TabsTrigger>
+              <TabsTrigger value="ignition">Ignition</TabsTrigger>
+              <TabsTrigger value="launch">Launch Control</TabsTrigger>
+              <TabsTrigger value="boost">Boost Control</TabsTrigger>
+              <TabsTrigger value="connection">Connection</TabsTrigger>
+            </TabsList>
             
-            {launchControl && (
+            <TabsContent value="engine" className="pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="engine-type" className="text-honda-light">Engine Type</Label>
+                    <Select value={engineType} onValueChange={setEngineType}>
+                      <SelectTrigger id="engine-type" className="bg-honda-gray border-honda-gray">
+                        <SelectValue placeholder="Select Engine Type" />
+                      </SelectTrigger>
+                      <SelectContent position="item-aligned">
+                        {ENGINES.map(engine => (
+                          <SelectItem key={engine.code} value={engine.code}>
+                            <div className="flex items-center">
+                              <Cpu className="mr-2 h-4 w-4" />
+                              <span>{engine.name} ({engine.displacement}L)</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedEngine && (
+                    <div className="rounded-md border border-honda-gray p-4">
+                      <h3 className="text-sm font-medium text-honda-light mb-2">Engine Specs</h3>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="text-honda-light/70">Displacement:</div>
+                        <div className="text-honda-light font-medium">{selectedEngine.displacement}L</div>
+                        
+                        <div className="text-honda-light/70">Cylinders:</div>
+                        <div className="text-honda-light font-medium">{selectedEngine.cylinders}</div>
+                        
+                        <div className="text-honda-light/70">Max Power:</div>
+                        <div className="text-honda-light font-medium">
+                          {selectedEngine.maxHP || "-"} HP ({selectedEngine.maxHP ? Math.round(selectedEngine.maxHP * 0.7457) : "-"} kW)
+                        </div>
+                        
+                        <div className="text-honda-light/70">Max Torque:</div>
+                        <div className="text-honda-light font-medium">{selectedEngine.maxTorque || "-"} Nm</div>
+                        
+                        <div className="text-honda-light/70">VTEC:</div>
+                        <div className="text-honda-light font-medium">{selectedEngine.vtecSupported ? "Yes" : "No"}</div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div>
-                    <Label htmlFor="launch-rpm" className="text-honda-light">Launch RPM</Label>
+                    <Label htmlFor="injector-size" className="text-honda-light">Injector Size (cc/min)</Label>
                     <div className="flex items-center gap-4">
                       <Slider
-                        value={[launchRpm]}
-                        max={6000}
-                        min={2000}
-                        step={100}
-                        onValueChange={(value) => setLaunchRpm(value[0])}
+                        value={[injectorSize]}
+                        max={1000}
+                        min={190}
+                        step={10}
+                        onValueChange={(value) => setInjectorSize(value[0])}
                         className="flex-1"
                       />
                       <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                        {launchRpm}
+                        {injectorSize}
                       </div>
                     </div>
                   </div>
                   
-                  <div>
-                    <Label htmlFor="launch-fuel" className="text-honda-light">Launch Fuel Enrichment (%)</Label>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[launchFuelEnrichment]}
-                        max={30}
-                        min={0}
-                        step={1}
-                        onValueChange={(value) => setLaunchFuelEnrichment(value[0])}
-                        className="flex-1"
-                      />
-                      <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                        {launchFuelEnrichment}%
+                  {selectedEngine.vtecSupported && (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id="vtec" 
+                          checked={vtecEnabled}
+                          onCheckedChange={setVtecEnabled}
+                        />
+                        <Label htmlFor="vtec" className="text-honda-light">VTEC Enabled</Label>
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="two-step" 
-                      checked={twoStep}
-                      onCheckedChange={setTwoStep}
-                    />
-                    <Label htmlFor="two-step" className="text-honda-light">Enable Two-Step</Label>
-                  </div>
-                </div>
-                
-                <div className="space-y-6">
-                  <div>
-                    <Label htmlFor="launch-retard" className="text-honda-light">Launch Timing Retard (degrees)</Label>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[launchTimingRetard]}
-                        max={15}
-                        min={0}
-                        step={1}
-                        onValueChange={(value) => setLaunchTimingRetard(value[0])}
-                        className="flex-1"
-                      />
-                      <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                        {launchTimingRetard}°
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      id="antilag" 
-                      checked={antilag}
-                      onCheckedChange={setAntilag}
-                    />
-                    <Label htmlFor="antilag" className="text-honda-light">Enable Anti-Lag at Launch</Label>
-                  </div>
-                  
-                  <div className="rounded-md border border-honda-gray p-4">
-                    <h3 className="text-sm font-medium text-honda-light mb-2">Launch Control Info</h3>
-                    <p className="text-xs text-honda-light/70">
-                      Launch control helps optimize traction from a standing start. Two-step allows for a two-stage rev limiter:
-                      one limit for launch and a higher limit for normal driving.
-                    </p>
-                    <p className="text-xs text-honda-light/70 mt-2">
-                      Anti-lag maintains turbo spool during launch by retarding timing and adding fuel, which
-                      creates combustion in the exhaust manifold. This can be hard on components.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="boost" className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="boost-target" className="text-honda-light">Base Boost Target (PSI)</Label>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      value={[15]}
-                      max={30}
-                      min={0}
-                      step={0.5}
-                      className="flex-1"
-                    />
-                    <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                      15.0
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="boost-by-rpm" 
-                    defaultChecked={true}
-                  />
-                  <Label htmlFor="boost-by-rpm" className="text-honda-light">Dynamic Boost by RPM</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="boost-by-gear" 
-                    checked={boostByGear}
-                    onCheckedChange={setBoostByGear}
-                  />
-                  <Label htmlFor="boost-by-gear" className="text-honda-light">Boost by Gear</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="boost-comp" 
-                    defaultChecked={true}
-                  />
-                  <Label htmlFor="boost-comp" className="text-honda-light">Boost Temperature Compensation</Label>
-                </div>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="rounded-md border border-honda-gray p-4">
-                  <h3 className="text-sm font-medium text-honda-light mb-2">Boost Control System</h3>
-                  <p className="text-xs text-honda-light/70">
-                    Boost control is managed by electronic wastegate control. The map-based boost target
-                    is modulated by temperature, gear, and RPM for optimal performance and safety.
-                  </p>
-                  <p className="text-xs text-honda-light/70 mt-2">
-                    Use the Boost Map tab to set detailed boost targets based on RPM and load conditions.
-                  </p>
-                </div>
-                
-                <div className="rounded-md border border-honda-gray p-4">
-                  <h3 className="text-sm font-medium text-honda-light mb-2">Warning</h3>
-                  <p className="text-xs text-red-400">
-                    Setting high boost targets may exceed the capabilities of the stock engine and turbo system.
-                    Ensure your fuel system and engine internals are upgraded appropriately for high boost applications.
-                  </p>
-                </div>
-                
-                <div>
-                  <Button 
-                    className="mr-2 bg-honda-gray hover:bg-honda-gray/90"
-                    onClick={() => toast.info("Boost Map Editor would open here")}
-                  >
-                    Edit Boost Map
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    onClick={() => toast.info("Wastegate Calibration would open here")}
-                  >
-                    Wastegate Calibration
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
-  );
-};
-
-export default TuningSettings;
+                      
+                      {vtecEnabled && (
+                        <div>
+                          <Label htmlFor="vtec-point" className="text-honda-light">VTEC Engagement (RPM)</Label>
+                          <div className="flex items-center gap-4">
+                            <Slider
+                              value={[vtecPoint]}
+                              max={7000}
+                              min={3000}
+                              step={100}
+                              onValueChange={(value) => setVtecPoint(value[0])}
+                              className="flex-1"
+                            />
+                            <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                              {vtecPoint}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </
