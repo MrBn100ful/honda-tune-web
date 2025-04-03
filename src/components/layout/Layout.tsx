@@ -14,7 +14,7 @@ const Layout = ({ children }: LayoutProps) => {
   const isDark = theme === 'dark';
 
   return (
-    <div className={`flex flex-col h-screen overflow-hidden ${isDark ? 'bg-honda-dark' : 'bg-gray-50'}`}>
+    <div className={`flex flex-col h-screen overflow-hidden ${isDark ? 'bg-honda-dark' : 'bg-gray-100'}`}>
       <Navbar isConnected={isConnected} onConnectionChange={setIsConnected} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isConnected={isConnected} />
