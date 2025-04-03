@@ -955,7 +955,7 @@ const FuelMap = () => {
                         onClick={() => setSelectedCells([])}
                         className="bg-red-700 hover:bg-red-800"
                       >
-                        <ClearAll size={14} className="mr-1" />
+                        <Eraser size={14} className="mr-1" />
                         Clear Selection
                       </Button>
                     </div>
