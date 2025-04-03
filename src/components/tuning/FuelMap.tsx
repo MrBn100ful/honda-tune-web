@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move, Grid3X3, MousePointer, ClearAll, Info, Maximize, Minimize } from "lucide-react";
+import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move, Grid3X3, MousePointer, Eraser, Info, Maximize, Minimize } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -625,7 +625,7 @@ const FuelMap = () => {
     setSelectedCells([]);
     setSelectedCell(null);
     toast.info("Cleared all selections", {
-      icon: <ClearAll size={16} />,
+      icon: <Eraser size={16} />,
     });
   };
 
@@ -779,7 +779,7 @@ const FuelMap = () => {
                     onClick={clearAllSelections}
                     className="bg-honda-red/10 border-honda-red/30 text-honda-red hover:bg-honda-red/20"
                   >
-                    <ClearAll size={14} className="mr-1" />
+                    <Eraser size={14} className="mr-1" />
                     Clear
                   </Button>
                 </>
