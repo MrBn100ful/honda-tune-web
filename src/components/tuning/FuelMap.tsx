@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move } from "lucide-react";
+import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move, Grid3X3, MousePointer, ClearAll, Info, Maximize, Minimize } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import FuelMap3D from './FuelMap3D';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Toggle } from "../ui/toggle";
 
 interface CellEditorProps {
   value: number;
@@ -266,6 +267,10 @@ const FuelMap = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [percentageAdjustment, setPercentageAdjustment] = useState<number>(5);
   const [showEditor, setShowEditor] = useState<boolean>(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{ x: number, y: number } | null>(null);
+  const [dragEnd, setDragEnd] = useState<{ x: number, y: number } | null>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
   
   useEffect(() => {
     const { rpm: newRpm, load: newLoad, data: newData } = generateMapData(isVtec, mapType);
@@ -286,7 +291,35 @@ const FuelMap = () => {
     setDisplayedLoad(newDisplayedLoad);
   }, [pressureUnit, load]);
   
+  const getCellAtPosition = (x: number, y: number): { row: number, col: number } | null => {
+    if (!tableRef.current) return null;
+    
+    const cells = tableRef.current.querySelectorAll('td');
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i];
+      const rect = cell.getBoundingClientRect();
+      if (
+        x >= rect.left && 
+        x <= rect.right && 
+        y >= rect.top && 
+        y <= rect.bottom
+      ) {
+        // Skip the first column (headers)
+        if (i % (rpm.length + 1) === 0) continue;
+        
+        const row = Math.floor(i / (rpm.length + 1));
+        const col = (i % (rpm.length + 1)) - 1;
+        if (col >= 0) {
+          return { row, col };
+        }
+      }
+    }
+    return null;
+  };
+  
   const handleCellClick = (row: number, col: number, isMultiSelect: boolean = false) => {
+    if (isDragging) return;
+    
     if (isMultiSelect || selectionMode) {
       const existingIndex = selectedCells.findIndex(cell => cell.row === row && cell.col === col);
       if (existingIndex > -1) {
@@ -300,6 +333,71 @@ const FuelMap = () => {
       setSelectedCells([]);
       setSelectedCell({ row, col });
     }
+  };
+  
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0 || !selectionMode) return; // Only left button
+    
+    // Clear existing selection if not holding Ctrl/Cmd
+    if (!e.ctrlKey && !e.metaKey) {
+      setSelectedCells([]);
+      setSelectedCell(null);
+    }
+    
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    setDragEnd({ x: e.clientX, y: e.clientY });
+    
+    // Prevent text selection during drag
+    e.preventDefault();
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setDragEnd({ x: e.clientX, y: e.clientY });
+  };
+  
+  const handleMouseUp = () => {
+    if (!isDragging || !dragStart || !dragEnd) {
+      setIsDragging(false);
+      return;
+    }
+    
+    // Get cells in selection rectangle
+    const startCell = getCellAtPosition(dragStart.x, dragStart.y);
+    const endCell = getCellAtPosition(dragEnd.x, dragEnd.y);
+    
+    if (startCell && endCell) {
+      selectCellsInRange(startCell, endCell);
+    }
+    
+    setIsDragging(false);
+    setDragStart(null);
+    setDragEnd(null);
+  };
+  
+  const selectCellsInRange = (startCell: { row: number, col: number }, endCell: { row: number, col: number }) => {
+    const minRow = Math.min(startCell.row, endCell.row);
+    const maxRow = Math.max(startCell.row, endCell.row);
+    const minCol = Math.min(startCell.col, endCell.col);
+    const maxCol = Math.max(startCell.col, endCell.col);
+    
+    const newSelectedCells: { row: number, col: number }[] = [];
+    
+    for (let row = minRow; row <= maxRow; row++) {
+      for (let col = minCol; col <= maxCol; col++) {
+        // Check if the cell is already selected
+        const isAlreadySelected = selectedCells.some(
+          cell => cell.row === row && cell.col === col
+        );
+        
+        if (!isAlreadySelected) {
+          newSelectedCells.push({ row, col });
+        }
+      }
+    }
+    
+    setSelectedCells([...selectedCells, ...newSelectedCells]);
   };
   
   const adjustValue = (amount: number, isPercentage: boolean = false) => {
@@ -362,9 +460,14 @@ const FuelMap = () => {
   const toggleSelectionMode = () => {
     setSelectionMode(!selectionMode);
     if (!selectionMode) {
-      toast.info("Multi-select mode enabled. Click cells to select multiple cells.");
+      toast.info("Multi-select mode enabled. Click and drag to select multiple cells.", {
+        duration: 3000,
+        icon: <MousePointer size={16} />,
+      });
     } else {
-      toast.info("Multi-select mode disabled.");
+      toast.info("Multi-select mode disabled.", {
+        icon: <X size={16} />,
+      });
       setSelectedCells([]);
     }
   };
@@ -411,7 +514,9 @@ const FuelMap = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success(`${mapType} map saved successfully!`);
+    toast.success(`${mapType} map saved successfully!`, {
+      icon: <Save size={16} />,
+    });
   };
 
   const handleLoadMap = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -500,6 +605,30 @@ const FuelMap = () => {
     return displayedLoad[idx].toFixed(0);
   };
 
+  const getSelectionBoxStyle = () => {
+    if (!isDragging || !dragStart || !dragEnd) return null;
+    
+    const left = Math.min(dragStart.x, dragEnd.x);
+    const top = Math.min(dragStart.y, dragEnd.y);
+    const width = Math.abs(dragEnd.x - dragStart.x);
+    const height = Math.abs(dragEnd.y - dragStart.y);
+    
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+    };
+  };
+
+  const clearAllSelections = () => {
+    setSelectedCells([]);
+    setSelectedCell(null);
+    toast.info("Cleared all selections", {
+      icon: <ClearAll size={16} />,
+    });
+  };
+
   return (
     <Card className="w-full h-full bg-honda-dark border-honda-gray overflow-hidden">
       <CardHeader className="pb-2 flex-none">
@@ -508,19 +637,21 @@ const FuelMap = () => {
             <CardTitle className="text-honda-light">Tuning Maps</CardTitle>
             <div className="flex items-center gap-2">
               <Button
-                variant={isVtec ? "default" : "outline"}
+                variant={isVtec ? "honda" : "outline"}
                 size="sm"
                 onClick={() => setIsVtec(true)}
-                className={`${isVtec ? 'bg-honda-red hover:bg-honda-red/90 text-white' : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
+                className={`${!isVtec && 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
               >
+                <Maximize size={14} className="mr-1" />
                 High Cam
               </Button>
               <Button
                 variant={!isVtec ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsVtec(false)}
-                className={`${!isVtec ? 'bg-honda-gray hover:bg-honda-gray/90 text-white' : 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
+                className={`${isVtec && 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
               >
+                <Minimize size={14} className="mr-1" />
                 Low Cam
               </Button>
             </div>
@@ -595,14 +726,20 @@ const FuelMap = () => {
         <div className="space-y-2 flex-1 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between mb-1 flex-none">
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleSelectionMode}
-                className={`${selectionMode ? 'bg-honda-accent text-white' : 'bg-honda-gray border-honda-gray text-honda-light'} hover:bg-honda-accent/80`}
+              <Toggle
+                pressed={selectionMode}
+                onPressedChange={toggleSelectionMode}
+                variant="honda"
+                className="h-8"
               >
-                {selectionMode ? 'Exit Selection' : 'Multi-Select'} ({selectedCells.length})
-              </Button>
+                <Grid3X3 size={14} className="mr-1" />
+                Multi-Select
+                {selectedCells.length > 0 && (
+                  <span className="ml-1 bg-honda-accent/20 px-1.5 py-0.5 rounded-full text-xs">
+                    {selectedCells.length}
+                  </span>
+                )}
+              </Toggle>
               
               {selectedCells.length > 0 && (
                 <>
@@ -635,6 +772,16 @@ const FuelMap = () => {
                     <PlusCircle size={14} className="mr-1" />
                     {percentageAdjustment}%
                   </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearAllSelections}
+                    className="bg-honda-red/10 border-honda-red/30 text-honda-red hover:bg-honda-red/20"
+                  >
+                    <ClearAll size={14} className="mr-1" />
+                    Clear
+                  </Button>
                 </>
               )}
             </div>
@@ -646,6 +793,7 @@ const FuelMap = () => {
                 onClick={interpolateMap}
                 className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
               >
+                <Grid3X3 size={14} className="mr-1" />
                 Interpolate
               </Button>
               
@@ -655,14 +803,22 @@ const FuelMap = () => {
                 onClick={generateMapReport}
                 className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
               >
+                <Info size={14} className="mr-1" />
                 Map Info
               </Button>
             </div>
           </div>
           
-          <ScrollArea className="flex-1 relative" style={{height: "calc(100% - 340px)"}}>
+          <ScrollArea 
+            className="flex-1 relative fuel-map-container" 
+            style={{height: "calc(100% - 340px)"}}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={() => setIsDragging(false)}
+          >
             <div ref={chartContainerRef} className="w-full">
-              <table className="w-full border-collapse">
+              <table ref={tableRef} className="w-full border-collapse">
                 <thead>
                   <tr>
                     <th className="grid-cell grid-header">RPM / Load ({pressureUnit})</th>
@@ -694,6 +850,13 @@ const FuelMap = () => {
                   ))}
                 </tbody>
               </table>
+              
+              {isDragging && dragStart && dragEnd && (
+                <div 
+                  className="selection-box"
+                  style={getSelectionBoxStyle() || {}}
+                ></div>
+              )}
             </div>
           </ScrollArea>
 
@@ -708,7 +871,8 @@ const FuelMap = () => {
                       onClick={() => adjustValue(-1)}
                       className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
                     >
-                      -1
+                      <MinusCircle size={14} className="mr-1" />
+                      1
                     </Button>
                     <Button 
                       variant="outline" 
@@ -716,7 +880,8 @@ const FuelMap = () => {
                       onClick={() => adjustValue(-0.1)}
                       className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
                     >
-                      -0.1
+                      <MinusCircle size={14} className="mr-1" />
+                      0.1
                     </Button>
                     
                     {selectedCell && (
@@ -739,7 +904,8 @@ const FuelMap = () => {
                       onClick={() => adjustValue(0.1)}
                       className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
                     >
-                      +0.1
+                      <PlusCircle size={14} className="mr-1" />
+                      0.1
                     </Button>
                     <Button 
                       variant="outline" 
@@ -747,7 +913,8 @@ const FuelMap = () => {
                       onClick={() => adjustValue(1)}
                       className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
                     >
-                      +1
+                      <PlusCircle size={14} className="mr-1" />
+                      1
                     </Button>
                   </div>
                   
@@ -788,6 +955,7 @@ const FuelMap = () => {
                         onClick={() => setSelectedCells([])}
                         className="bg-red-700 hover:bg-red-800"
                       >
+                        <ClearAll size={14} className="mr-1" />
                         Clear Selection
                       </Button>
                     </div>

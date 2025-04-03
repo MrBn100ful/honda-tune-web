@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -40,6 +41,7 @@
     --honda-gray: 220 13% 28%;
     --honda-dark: 220 13% 18%;
     --honda-light: 210 40% 98%;
+    --honda-accent: 15 100% 55%;
   }
 
   .dark-theme {
@@ -71,10 +73,11 @@
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
 
-    --honda-red: 0 100% 50%;
-    --honda-gray: 220 13% 28%;
-    --honda-dark: 220 13% 18%;
+    --honda-red: 0 100% 55%;
+    --honda-gray: 220 13% 35%;
+    --honda-dark: 220 13% 15%;
     --honda-light: 210 40% 98%;
+    --honda-accent: 15 100% 60%;
   }
 
   .light-theme {
@@ -107,9 +110,10 @@
     --ring: 222.2 84% 4.9%;
 
     --honda-red: 0 80% 45%;
-    --honda-gray: 220 13% 70%;
+    --honda-gray: 220 13% 40%;
     --honda-dark: 220 13% 90%;
     --honda-light: 222.2 84% 4.9%;
+    --honda-accent: 15 85% 50%;
   }
 }
 
@@ -132,7 +136,7 @@
   }
   
   .grid-highlight {
-    @apply bg-honda-red/20 border-honda-red;
+    @apply bg-honda-red/30 border-honda-red shadow-sm;
   }
   
   /* Value-based cell colors */
@@ -193,4 +197,36 @@
     50% { opacity: 0.4; }
     100% { opacity: 1; }
   }
+
+  /* Selection styles for drag select */
+  .selection-area {
+    background: rgba(46, 115, 252, 0.11);
+    border: 2px solid rgba(98, 155, 255, 0.81);
+    border-radius: 0.1em;
+  }
+  
+  .light-theme .selection-area {
+    background: rgba(46, 115, 252, 0.21);
+    border: 2px solid rgba(98, 155, 255, 0.91);
+  }
 }
+
+/* For the drag selection */
+.fuel-map-container.dragging {
+  user-select: none;
+  cursor: crosshair;
+}
+
+.selection-box {
+  position: absolute;
+  border: 2px dashed #1a81ff;
+  background-color: rgba(66, 135, 245, 0.2);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.light-theme .selection-box {
+  border: 2px dashed #0062cc;
+  background-color: rgba(66, 135, 245, 0.3);
+}
+

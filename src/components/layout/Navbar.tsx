@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Settings, Upload, Circle, Plug } from "lucide-react";
+import { Settings, Upload, Circle, Plug, AlertTriangle, InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -73,7 +73,10 @@ const Navbar = ({ isConnected, onConnectionChange }: NavbarProps) => {
           </DialogTrigger>
           <DialogContent className="bg-honda-dark border-honda-gray">
             <DialogHeader>
-              <DialogTitle className="text-honda-light">Not Connected</DialogTitle>
+              <DialogTitle className="text-honda-light flex items-center gap-2">
+                <AlertTriangle size={18} className="text-yellow-500" />
+                Not Connected
+              </DialogTitle>
               <DialogDescription className="text-honda-light/70">
                 Please connect to the EEPROM programer before attempting to flash the EEPROM.
               </DialogDescription>

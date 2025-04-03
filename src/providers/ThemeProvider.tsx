@@ -14,13 +14,21 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState<Theme>('dark');
   
   useEffect(() => {
+    // Check if there's a saved theme preference
+    const savedTheme = localStorage.getItem('webtune-theme') as Theme | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+    
     // Apply the theme to the document
     document.documentElement.classList.remove('light-theme', 'dark-theme');
     document.documentElement.classList.add(`${theme}-theme`);
   }, [theme]);
   
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('webtune-theme', newTheme);
   };
   
   return (
