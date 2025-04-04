@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FuelMap from '@/components/tuning/FuelMap';
@@ -7,7 +7,13 @@ import TuningSettings from '@/components/tuning/TuningSettings';
 import DataLogging from '@/components/tuning/DataLogging';
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("maps");
+  const [activeTab, setActiveTab] = useState("settings"); // Changed default tab to settings
+  
+  // Clear setup completion flag on initial load
+  useEffect(() => {
+    // This will force the setup wizard to show on load
+    localStorage.removeItem('ecuSetupCompleted');
+  }, []);
   
   return (
     <Layout>

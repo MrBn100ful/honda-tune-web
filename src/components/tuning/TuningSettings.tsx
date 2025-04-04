@@ -167,7 +167,13 @@ const TRANSMISSIONS: TransmissionData[] = [
 ];
 
 // Initial setup dialog component
-const SetupWizard = ({ isOpen, onClose, onComplete }) => {
+interface SetupWizardProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onComplete: (settings: { engine: string; transmission: string; injectorSize: number }) => void;
+}
+
+const SetupWizard = ({ isOpen, onClose, onComplete }: SetupWizardProps) => {
   const [step, setStep] = useState(1);
   const [selectedEngine, setSelectedEngine] = useState("b16a");
   const [selectedTransmission, setSelectedTransmission] = useState("b-series-m5");
@@ -393,7 +399,7 @@ const TuningSettings = () => {
   ]);
   
   // Setup wizard state
-  const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showSetupWizard, setShowSetupWizard] = useState(true);
   const [hasCompletedSetup, setHasCompletedSetup] = useState(false);
   
   // Update settings when engine/transmission is changed
@@ -424,8 +430,11 @@ const TuningSettings = () => {
     }
   }, [transmissionType]);
 
-  // Check if this is the first load
+  // Check if this is the first load - Modified to force show the wizard
   useEffect(() => {
+    // Clear the localStorage setup flag to always show the wizard for testing
+    localStorage.removeItem('ecuSetupCompleted');
+    
     const setupCompleted = localStorage.getItem('ecuSetupCompleted');
     if (!setupCompleted) {
       setShowSetupWizard(true);
@@ -619,9 +628,23 @@ const TuningSettings = () => {
     };
     reader.readAsText(file);
   };
+
+  // Force the setup wizard to show
+  useEffect(() => {
+    if (!hasCompletedSetup) {
+      setShowSetupWizard(true);
+    }
+  }, [hasCompletedSetup]);
   
   return (
     <React.Fragment>
+      {showSetupWizard && (
+        <SetupWizard 
+          isOpen={showSetupWizard}
+          onClose={() => setShowSetupWizard(false)}
+          onComplete={handleSetupComplete}
+        />
+      )}
       <Card className="w-full h-full bg-honda-dark border-honda-gray">
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
