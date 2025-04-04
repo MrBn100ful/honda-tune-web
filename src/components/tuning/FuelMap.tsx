@@ -805,3 +805,297 @@ const FuelMap = () => {
 
   const getSelectionBoxStyle = () => {
     if (!isDragging || !dragStart || !dragEnd) return null;
+    
+    const left = Math.min(dragStart.x, dragEnd.x);
+    const top = Math.min(dragStart.y, dragEnd.y);
+    const width = Math.abs(dragEnd.x - dragStart.x);
+    const height = Math.abs(dragEnd.y - dragStart.y);
+    
+    return {
+      position: 'fixed' as const,
+      left,
+      top,
+      width,
+      height,
+      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+      border: '1px solid rgba(59, 130, 246, 0.5)',
+      pointerEvents: 'none' as const,
+      zIndex: 10
+    };
+  };
+
+  if (showEmptyState) {
+    return (
+      <div className="flex items-center justify-center h-full bg-background">
+        <Card className="w-full max-w-md bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold">ECU Tuning Project</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col space-y-4">
+              <div className="flex justify-center">
+                <AlertTriangle size={64} className="text-yellow-500 my-4" />
+              </div>
+              <p className="text-center text-muted-foreground mb-4">
+                No tuning project is currently active. Would you like to:
+              </p>
+              <div className="grid grid-cols-1 gap-3">
+                <Button
+                  className="w-full"
+                  variant="accent"
+                  onClick={handleStartSetup}
+                >
+                  <Settings size={16} />
+                  Start Setup Wizard
+                </Button>
+                
+                <div className="relative">
+                  <Input
+                    type="file"
+                    id="map-upload"
+                    accept=".json"
+                    className="hidden"
+                    onChange={handleLoadMap}
+                  />
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => document.getElementById('map-upload')?.click()}
+                  >
+                    <FileUp size={16} />
+                    Load Existing Map
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="bg-card p-2 border-b flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center space-x-2">
+          <Select value={mapType} onValueChange={setMapType}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Map Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(MAP_TYPES).map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <div className="flex-shrink-0">
+            <Toggle 
+              pressed={selectionMode}
+              onPressedChange={toggleSelectionMode}
+              aria-label="Multi-select mode"
+              className={`h-9 ${selectionMode ? 'bg-primary text-primary-foreground' : ''}`}
+              title="Toggle multi-select mode"
+            >
+              <Grid3X3 size={16} className="mr-1" />
+              Multi-select
+            </Toggle>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {selectedCells.length > 0 && (
+            <>
+              <div className="flex items-center border rounded-md overflow-hidden">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => adjustValue(-0.1)}
+                  className="px-2 rounded-none h-9 border-r"
+                >
+                  <MinusCircle size={16} />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => adjustValue(0.1)}
+                  className="px-2 rounded-none h-9"
+                >
+                  <PlusCircle size={16} />
+                </Button>
+              </div>
+              
+              <div className="flex items-center border rounded-md overflow-hidden">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => adjustValue(-percentageAdjustment, true)}
+                  className="px-2 rounded-none h-9 border-r"
+                >
+                  <Percent size={16} className="mr-1" />
+                  -{percentageAdjustment}%
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => adjustValue(percentageAdjustment, true)}
+                  className="px-2 rounded-none h-9"
+                >
+                  <Percent size={16} className="mr-1" />
+                  +{percentageAdjustment}%
+                </Button>
+              </div>
+              
+              <div className="hidden md:flex items-center">
+                <span className="text-sm text-muted-foreground mr-1">Incr:</span>
+                <Input
+                  type="number"
+                  value={percentageAdjustment}
+                  onChange={(e) => setPercentageAdjustment(parseFloat(e.target.value))}
+                  className="w-16 h-8"
+                  min={1}
+                  max={20}
+                />
+                <span className="text-sm text-muted-foreground ml-1">%</span>
+              </div>
+            </>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={interpolateMap}
+            className="h-9"
+            title="Interpolate map values"
+          >
+            <LucideBox size={16} className="mr-1" />
+            Smooth
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generateMapReport}
+            className="h-9"
+            title="Generate map report"
+          >
+            <Info size={16} className="mr-1" />
+            Info
+          </Button>
+          
+          <Button
+            variant="accent"
+            size="sm"
+            onClick={handleSaveMap}
+            className="h-9"
+            title="Save map"
+          >
+            <Save size={16} className="mr-1" />
+            Save
+          </Button>
+          
+          <div className="relative">
+            <Input
+              type="file"
+              id="map-upload-button"
+              accept=".json"
+              className="hidden"
+              onChange={handleLoadMap}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('map-upload-button')?.click()}
+              className="h-9"
+              title="Load map"
+            >
+              <Upload size={16} className="mr-1" />
+              Load
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      <Tabs defaultValue="table" className="flex-1 overflow-hidden flex flex-col">
+        <TabsList className="mx-2 mt-2">
+          <TabsTrigger value="table">Table</TabsTrigger>
+          <TabsTrigger value="3d">3D View</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="table" className="flex-1 overflow-hidden p-0 m-0">
+          <div className="relative h-full w-full overflow-auto" onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+            {isDragging && dragStart && dragEnd && (
+              <div style={getSelectionBoxStyle()} />
+            )}
+            
+            <table ref={tableRef} className="min-w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-card sticky top-0 z-10">
+                  <th className="border-b p-2 text-muted-foreground font-medium text-center">{mapType} / RPM</th>
+                  {rpm.map((r, idx) => (
+                    <th key={idx} className="border-b p-2 text-muted-foreground font-medium text-center sticky top-0 bg-card">
+                      {r}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {mapData.map((row, rowIdx) => (
+                  <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-card/50' : 'bg-card/25'}>
+                    <td className="border-r p-2 text-center font-medium sticky left-0 bg-card text-muted-foreground">
+                      {getDisplayedLoadValue(rowIdx)} {pressureUnit}
+                    </td>
+                    {row.map((cell, colIdx) => {
+                      const isSelected = selectedCell?.row === rowIdx && selectedCell?.col === colIdx;
+                      const isMultiSelected = selectedCells.some(s => s.row === rowIdx && s.col === colIdx);
+                      
+                      const cellColorClass = getCellColorClass(cell, mapType, minValue, maxValue);
+                      
+                      return (
+                        <td 
+                          key={colIdx} 
+                          className={`relative border border-border/30 p-1 text-center cursor-pointer transition-colors
+                            ${isSelected ? 'bg-blue-800 text-white' : ''}
+                            ${isMultiSelected ? 'bg-blue-600 text-white' : ''}
+                            ${!isSelected && !isMultiSelected ? cellColorClass : ''}`}
+                          onClick={(e) => handleCellClick(rowIdx, colIdx, e.ctrlKey || e.metaKey)}
+                        >
+                          {isSelected && selectedCell ? (
+                            <CellEditor
+                              value={cell}
+                              onSave={(newValue) => setExactValue(newValue)}
+                              onCancel={() => setSelectedCell(null)}
+                            />
+                          ) : (
+                            <span>{cell.toFixed(1)}</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="3d" className="flex-1 overflow-hidden p-4">
+          <div ref={chartContainerRef} className="w-full h-full bg-card rounded-lg overflow-hidden">
+            <FuelMap3D 
+              mapData={mapData} 
+              rpm={rpm} 
+              load={load}
+              mapType={mapType}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default FuelMap;
