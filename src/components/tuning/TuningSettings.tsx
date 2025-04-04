@@ -11,7 +11,6 @@ import { Save, RotateCcw, Upload, Download, Settings2, Cpu, Gauge, BarChart2, Fu
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
-// Engine data structure
 interface EngineData {
   name: string;
   code: string;
@@ -25,7 +24,6 @@ interface EngineData {
   maxTorque?: number;
 }
 
-// Transmission data structure
 interface TransmissionData {
   type: string;
   code: string;
@@ -33,7 +31,6 @@ interface TransmissionData {
   finalDrive: number;
 }
 
-// Engine database with converted torque values (lb-ft to Nm)
 const ENGINES: EngineData[] = [
   {
     name: "B16A VTEC",
@@ -132,7 +129,6 @@ const ENGINES: EngineData[] = [
   }
 ];
 
-// Transmission database
 const TRANSMISSIONS: TransmissionData[] = [
   {
     type: "Manual 5-Speed (B-series)",
@@ -166,7 +162,6 @@ const TRANSMISSIONS: TransmissionData[] = [
   }
 ];
 
-// Initial setup dialog component
 interface SetupWizardProps {
   isOpen: boolean;
   onClose: () => void;
@@ -180,12 +175,21 @@ const SetupWizard = ({ isOpen, onClose, onComplete }: SetupWizardProps) => {
   const [injectorSize, setInjectorSize] = useState(240);
   
   const handleComplete = () => {
-    onComplete({
+    const settings = {
       engine: selectedEngine,
       transmission: selectedTransmission,
-      injectorSize: injectorSize
-    });
+      injectorSize: parseInt(injectorSize, 10),
+      fuelPressure: parseFloat(fuelPressure),
+      cylinderCount: engineDetails?.cylinderCount || 4
+    };
+    
+    localStorage.setItem('ecuSettings', JSON.stringify(settings));
+    localStorage.setItem('ecuSetupCompleted', 'true');
+    
+    onComplete(settings);
     onClose();
+    
+    toast.success("Setup completed successfully! Base maps have been generated.");
   };
   
   if (!isOpen) return null;
@@ -338,13 +342,11 @@ const SetupWizard = ({ isOpen, onClose, onComplete }: SetupWizardProps) => {
 };
 
 const TuningSettings = () => {
-  // Engine configuration
   const [engineType, setEngineType] = useState("b16a");
   const [selectedEngine, setSelectedEngine] = useState<EngineData>(ENGINES[0]);
   const [transmissionType, setTransmissionType] = useState("b-series-m5");
   const [selectedTransmission, setSelectedTransmission] = useState<TransmissionData>(TRANSMISSIONS[0]);
   
-  // General settings
   const [injectorSize, setInjectorSize] = useState(240);
   const [boostByGear, setBoostByGear] = useState(false);
   const [gearBoostLimits, setGearBoostLimits] = useState<number[]>([0.3, 0.5, 0.7, 0.8, 1.0, 1.0]);
@@ -358,27 +360,23 @@ const TuningSettings = () => {
   const [mapSensor, setMapSensor] = useState("3bar");
   const [iacEnabled, setIacEnabled] = useState(true);
   
-  // Fuel settings
   const [targetAfrCruise, setTargetAfrCruise] = useState(14.7);
   const [targetAfrWot, setTargetAfrWot] = useState(12.2);
   const [fuelPressure, setFuelPressure] = useState(3.0);
   const [fuelType, setFuelType] = useState("gasoline");
   const [accelEnrichment, setAccelEnrichment] = useState(true);
   
-  // Ignition settings
   const [baseTiming, setBaseTiming] = useState(16);
   const [knockRetard, setKnockRetard] = useState(4);
   const [popcornRetard, setPopcornRetard] = useState(12);
   const [knockDetection, setKnockDetection] = useState(true);
   const [timingComp, setTimingComp] = useState(true);
   
-  // Launch control settings
   const [launchFuelEnrichment, setLaunchFuelEnrichment] = useState(15);
   const [launchTimingRetard, setLaunchTimingRetard] = useState(8);
   const [twoStep, setTwoStep] = useState(true);
   const [antilag, setAntilag] = useState(false);
 
-  // Connection settings
   const [rtpInputs, setRtpInputs] = useState([
     { pin: "A1", type: "analog", usage: "MAP Sensor", scaling: "3 bar" },
     { pin: "A2", type: "analog", usage: "TPS Sensor", scaling: "0-5V" },
@@ -398,11 +396,9 @@ const TuningSettings = () => {
     { pin: "OUT6", type: "relay", usage: "Fuel Pump", current: "5A" },
   ]);
   
-  // Setup wizard state
-  const [showSetupWizard, setShowSetupWizard] = useState(true);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [hasCompletedSetup, setHasCompletedSetup] = useState(false);
   
-  // Update settings when engine/transmission is changed
   useEffect(() => {
     const engine = ENGINES.find(e => e.code === engineType);
     if (engine) {
@@ -423,38 +419,45 @@ const TuningSettings = () => {
     const transmission = TRANSMISSIONS.find(t => t.code === transmissionType);
     if (transmission) {
       setSelectedTransmission(transmission);
-      // Initialize boost by gear limits based on number of gears
       setGearBoostLimits(Array(transmission.gearRatios.length).fill(0).map((_, i) => 
         Math.min(0.3 + i * 0.15, 1.0) // Progressive boost limits by gear (in bar)
       ));
     }
   }, [transmissionType]);
 
-  // Check if this is the first load - Modified to force show the wizard
   useEffect(() => {
-    // Clear the localStorage setup flag to always show the wizard for testing
-    localStorage.removeItem('ecuSetupCompleted');
-    
     const setupCompleted = localStorage.getItem('ecuSetupCompleted');
-    if (!setupCompleted) {
-      setShowSetupWizard(true);
-    } else {
+    if (setupCompleted) {
       setHasCompletedSetup(true);
-      // Load saved settings here if needed
+      try {
+        const savedSettings = JSON.parse(localStorage.getItem('ecuSettings') || '{}');
+        if (savedSettings.engine) {
+          setEngineType(savedSettings.engine);
+        }
+        if (savedSettings.transmission) {
+          setTransmissionType(savedSettings.transmission);
+        }
+        if (savedSettings.injectorSize) {
+          setInjectorSize(savedSettings.injectorSize);
+        }
+      } catch (e) {
+        console.error("Error loading saved settings:", e);
+      }
+    } else {
+      setShowSetupWizard(true);
     }
   }, []);
 
   const handleSetupComplete = (settings) => {
+    setHasCompletedSetup(true);
     setEngineType(settings.engine);
     setTransmissionType(settings.transmission);
     setInjectorSize(settings.injectorSize);
-    setHasCompletedSetup(true);
-    localStorage.setItem('ecuSetupCompleted', 'true');
-    toast.success("Initial setup completed");
+    
+    window.location.reload();
   };
 
   const handleReset = () => {
-    // Reset all values to the defaults for the selected engine
     const engine = ENGINES.find(e => e.code === engineType);
     if (engine) {
       setInjectorSize(engine.defaultInjectorSize);
@@ -560,7 +563,6 @@ const TuningSettings = () => {
       try {
         const settings = JSON.parse(e.target?.result as string);
         
-        // Load engine settings
         if (settings.engine) {
           setEngineType(settings.engine.type);
           setInjectorSize(settings.engine.injectorSize);
@@ -570,7 +572,6 @@ const TuningSettings = () => {
           setIdleRpm(settings.engine.idleRpm);
         }
         
-        // Load transmission settings
         if (settings.transmission) {
           setTransmissionType(settings.transmission.type);
           setBoostByGear(settings.transmission.boostByGear);
@@ -579,7 +580,6 @@ const TuningSettings = () => {
           }
         }
         
-        // Load fuel settings
         if (settings.fuel) {
           setTargetAfrCruise(settings.fuel.targetAfrCruise);
           setTargetAfrWot(settings.fuel.targetAfrWot);
@@ -588,7 +588,6 @@ const TuningSettings = () => {
           setAccelEnrichment(settings.fuel.accelEnrichment);
         }
         
-        // Load ignition settings
         if (settings.ignition) {
           setBaseTiming(settings.ignition.baseTiming);
           setKnockRetard(settings.ignition.knockRetard);
@@ -597,7 +596,6 @@ const TuningSettings = () => {
           setTimingComp(settings.ignition.timingComp);
         }
         
-        // Load launch settings
         if (settings.launch) {
           setLaunchControl(settings.launch.enabled);
           setLaunchRpm(settings.launch.rpm);
@@ -607,14 +605,12 @@ const TuningSettings = () => {
           setAntilag(settings.launch.antilag);
         }
         
-        // Load other settings
         if (settings.other) {
           setPopcornMode(settings.other.popcornMode);
           setMapSensor(settings.other.mapSensor);
           setIacEnabled(settings.other.iacEnabled);
         }
 
-        // Load connection settings
         if (settings.connection) {
           if (settings.connection.inputs) setRtpInputs(settings.connection.inputs);
           if (settings.connection.outputs) setRtpOutputs(settings.connection.outputs);
@@ -629,35 +625,35 @@ const TuningSettings = () => {
     reader.readAsText(file);
   };
 
-  // Force the setup wizard to show
-  useEffect(() => {
-    if (!hasCompletedSetup) {
-      setShowSetupWizard(true);
-    }
-  }, [hasCompletedSetup]);
-  
+  const openSetupWizard = () => {
+    setShowSetupWizard(true);
+  };
+
   return (
     <React.Fragment>
-      {showSetupWizard && (
-        <SetupWizard 
-          isOpen={showSetupWizard}
-          onClose={() => setShowSetupWizard(false)}
-          onComplete={handleSetupComplete}
-        />
-      )}
+      <SetupWizard 
+        isOpen={showSetupWizard}
+        onClose={() => setShowSetupWizard(false)}
+        onComplete={handleSetupComplete}
+      />
+      
       <Card className="w-full h-full bg-honda-dark border-honda-gray">
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <CardTitle className="text-honda-light">ECU Settings</CardTitle>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowSetupWizard(true)} 
-                className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-              >
-                <Settings2 size={16} className="mr-1" /> Setup Wizard
-              </Button>
+            <div className="flex items-center gap-3">
+              {hasCompletedSetup && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openSetupWizard}
+                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
+                >
+                  <Settings2 size={16} className="mr-2" />
+                  Reconfigure ECU
+                </Button>
+              )}
+              
               <input
                 type="file"
                 id="load-settings"

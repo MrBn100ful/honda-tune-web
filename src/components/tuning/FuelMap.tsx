@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move, Grid3X3, MousePointer, Eraser, Info, Maximize, Minimize } from "lucide-react";
+import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move, Grid3X3, MousePointer, Eraser, Info, Maximize, Minimize, AlertTriangle, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -262,7 +262,7 @@ const FuelMap = () => {
   const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
   const [selectedCells, setSelectedCells] = useState<{ row: number, col: number }[]>([]);
   const [selectionMode, setSelectionMode] = useState<boolean>(false);
-  const [pressureUnit, setPressureUnit] = useState<'mbar' | 'kPa' | 'psi'>('mbar');
+  const [pressureUnit, setPressureUnit] = useState<'bar' | 'kPa'>('kPa');
   const [displayedLoad, setDisplayedLoad] = useState<number[]>([]);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [percentageAdjustment, setPercentageAdjustment] = useState<number>(5);
@@ -271,25 +271,112 @@ const FuelMap = () => {
   const [dragStart, setDragStart] = useState<{ x: number, y: number } | null>(null);
   const [dragEnd, setDragEnd] = useState<{ x: number, y: number } | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
+  const [isProjectSetup, setIsProjectSetup] = useState<boolean>(false);
   
   useEffect(() => {
-    const { rpm: newRpm, load: newLoad, data: newData } = generateMapData(isVtec, mapType);
-    setRpm(newRpm);
-    setLoad(newLoad);
-    setMapData(newData);
-    setDisplayedLoad(newLoad);
-  }, [isVtec, mapType]);
-  
-  useEffect(() => {
-    if (load.length === 0) return;
+    const setupCompleted = localStorage.getItem('ecuSetupCompleted');
+    setIsProjectSetup(!!setupCompleted);
     
-    const newDisplayedLoad = load.map(value => 
-      pressureUnit === 'mbar' 
+    if (setupCompleted) {
+      const ecuSettings = JSON.parse(localStorage.getItem('ecuSettings') || '{}');
+      generateBaseMap(ecuSettings);
+    } else {
+      setRpm([]);
+      setLoad([]);
+      setMapData([]);
+      setDisplayedLoad([]);
+    }
+  }, []);
+
+  const generateBaseMap = (settings: any) => {
+    let rpmRange: number[] = [];
+    let loadRange: number[] = [];
+    
+    const engine = settings.engine || 'b16a';
+    const isVtec = engine.includes('vtec') || ['b16a', 'b18c', 'k20a'].includes(engine);
+    
+    const maxRpm = isVtec ? 8400 : 7000;
+    const rpmStep = 400;
+    for (let rpm = 800; rpm <= maxRpm; rpm += rpmStep) {
+      rpmRange.push(rpm);
+    }
+    
+    const maxLoad = 250;
+    const loadStep = 25;
+    for (let load = 25; load <= maxLoad; load += loadStep) {
+      loadRange.push(load);
+    }
+    
+    const newMapData: number[][] = [];
+    for (let i = 0; i < loadRange.length; i++) {
+      const row: number[] = [];
+      for (let j = 0; j < rpmRange.length; j++) {
+        let value = 0;
+        
+        if (mapType === MAP_TYPES.FUEL) {
+          const normalizedLoad = loadRange[i] / maxLoad;
+          const normalizedRpm = rpmRange[j] / maxRpm;
+          
+          value = 2 + (normalizedLoad * 10);
+          
+          if (normalizedRpm < 0.5) {
+            value += normalizedRpm * 4;
+          } else {
+            value += 2 - (normalizedRpm - 0.5) * 2;
+          }
+          
+          if (isVtec && normalizedRpm > 0.6) {
+            value += (normalizedRpm - 0.6) * 3;
+          }
+        } 
+        else if (mapType === MAP_TYPES.AFR) {
+          const normalizedLoad = loadRange[i] / maxLoad;
+          value = 14.7 - (normalizedLoad * 2.5);
+          value = Math.max(value, 11.5);
+        }
+        else if (mapType === MAP_TYPES.IGNITION) {
+          const normalizedLoad = loadRange[i] / maxLoad;
+          const normalizedRpm = rpmRange[j] / maxRpm;
+          
+          value = 30 - (normalizedLoad * 25);
+          
+          if (normalizedRpm < 0.5) {
+            value += normalizedRpm * 5;
+          } else {
+            value -= (normalizedRpm - 0.5) * 3;
+          }
+          
+          value = Math.max(value, 5);
+        }
+        else {
+          value = 0;
+        }
+        
+        row.push(parseFloat(value.toFixed(1)));
+      }
+      newMapData.push(row);
+    }
+    
+    setRpm(rpmRange);
+    setLoad(loadRange);
+    setMapData(newMapData);
+    setIsVtec(isVtec);
+    
+    const newDisplayedLoad = loadRange.map(value => 
+      pressureUnit === 'kPa' 
         ? value 
-        : convertUnits(value, 'mbar', pressureUnit)
+        : convertUnits(value, 'kPa', pressureUnit)
     );
     setDisplayedLoad(newDisplayedLoad);
-  }, [pressureUnit, load]);
+  };
+  
+  const handleStartSetup = () => {
+    localStorage.removeItem('ecuSetupCompleted');
+    window.location.href = '#settings';
+    document.querySelector('[data-value="settings"]')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true })
+    );
+  };
   
   const getCellAtPosition = (x: number, y: number): { row: number, col: number } | null => {
     if (!tableRef.current) return null;
@@ -304,7 +391,6 @@ const FuelMap = () => {
         y >= rect.top && 
         y <= rect.bottom
       ) {
-        // Skip the first column (headers)
         if (i % (rpm.length + 1) === 0) continue;
         
         const row = Math.floor(i / (rpm.length + 1));
@@ -336,9 +422,8 @@ const FuelMap = () => {
   };
   
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0 || !selectionMode) return; // Only left button
+    if (e.button !== 0 || !selectionMode) return;
     
-    // Clear existing selection if not holding Ctrl/Cmd
     if (!e.ctrlKey && !e.metaKey) {
       setSelectedCells([]);
       setSelectedCell(null);
@@ -348,7 +433,6 @@ const FuelMap = () => {
     setDragStart({ x: e.clientX, y: e.clientY });
     setDragEnd({ x: e.clientX, y: e.clientY });
     
-    // Prevent text selection during drag
     e.preventDefault();
   };
   
@@ -363,7 +447,6 @@ const FuelMap = () => {
       return;
     }
     
-    // Get cells in selection rectangle
     const startCell = getCellAtPosition(dragStart.x, dragStart.y);
     const endCell = getCellAtPosition(dragEnd.x, dragEnd.y);
     
@@ -386,7 +469,6 @@ const FuelMap = () => {
     
     for (let row = minRow; row <= maxRow; row++) {
       for (let col = minCol; col <= maxCol; col++) {
-        // Check if the cell is already selected
         const isAlreadySelected = selectedCells.some(
           cell => cell.row === row && cell.col === col
         );
@@ -533,7 +615,7 @@ const FuelMap = () => {
         setLoad(mapData.load || load);
         setDisplayedLoad(mapData.load || load);
         if (mapData.mapType) setMapType(mapData.mapType);
-        if (mapData.pressureUnit) setPressureUnit(mapData.pressureUnit as 'mbar' | 'kPa' | 'psi');
+        if (mapData.pressureUnit) setPressureUnit(mapData.pressureUnit as 'bar' | 'kPa');
         toast.success("Map loaded successfully!");
       } catch (error) {
         console.error('Error loading map:', error);
@@ -629,6 +711,29 @@ const FuelMap = () => {
     });
   };
 
+  if (!isProjectSetup || mapData.length === 0) {
+    return (
+      <Card className="w-full h-full bg-honda-dark border-honda-gray">
+        <CardHeader>
+          <CardTitle className="text-honda-light">Tuning Maps</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[calc(100%-60px)] flex flex-col items-center justify-center">
+          <div className="text-center max-w-md">
+            <AlertTriangle size={64} className="mx-auto mb-4 text-honda-red/80" />
+            <h2 className="text-xl font-bold text-honda-light mb-2">Project Setup Required</h2>
+            <p className="text-honda-light/70 mb-6">
+              No tuning maps have been configured yet. Please complete the setup wizard to configure your ECU and generate base maps.
+            </p>
+            <Button onClick={handleStartSetup} variant="honda" size="lg">
+              <Settings className="mr-2" size={18} />
+              Start Setup Wizard
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full h-full bg-honda-dark border-honda-gray overflow-hidden">
       <CardHeader className="pb-2 flex-none">
@@ -662,22 +767,46 @@ const FuelMap = () => {
                 <SelectValue placeholder="Map Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={MAP_TYPES.FUEL}>Fuel</SelectItem>
-                <SelectItem value={MAP_TYPES.AFR}>AFR Target</SelectItem>
-                <SelectItem value={MAP_TYPES.IGNITION}>Ignition</SelectItem>
-                <SelectItem value={MAP_TYPES.INJ_DUTY}>Injector Duty</SelectItem>
-                <SelectItem value={MAP_TYPES.BOOST}>Boost</SelectItem>
+                <SelectItem value={MAP_TYPES.FUEL}>
+                  <div className="flex items-center">
+                    <PlusCircle size={14} className="mr-2 text-blue-400" />
+                    Fuel
+                  </div>
+                </SelectItem>
+                <SelectItem value={MAP_TYPES.AFR}>
+                  <div className="flex items-center">
+                    <Percent size={14} className="mr-2 text-green-400" />
+                    AFR Target
+                  </div>
+                </SelectItem>
+                <SelectItem value={MAP_TYPES.IGNITION}>
+                  <div className="flex items-center">
+                    <ChevronUp size={14} className="mr-2 text-yellow-400" />
+                    Ignition
+                  </div>
+                </SelectItem>
+                <SelectItem value={MAP_TYPES.INJ_DUTY}>
+                  <div className="flex items-center">
+                    <ChevronDown size={14} className="mr-2 text-purple-400" />
+                    Injector Duty
+                  </div>
+                </SelectItem>
+                <SelectItem value={MAP_TYPES.BOOST}>
+                  <div className="flex items-center">
+                    <Maximize size={14} className="mr-2 text-red-400" />
+                    Boost
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
             
-            <Select value={pressureUnit} onValueChange={(value) => setPressureUnit(value as 'mbar' | 'kPa' | 'psi')}>
+            <Select value={pressureUnit} onValueChange={(value) => setPressureUnit(value as 'bar' | 'kPa')}>
               <SelectTrigger className="w-[90px] h-8 text-sm bg-honda-gray border-honda-gray">
                 <SelectValue placeholder="Unit" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="mbar">mbar</SelectItem>
+                <SelectItem value="bar">Bar</SelectItem>
                 <SelectItem value="kPa">kPa</SelectItem>
-                <SelectItem value="psi">psi</SelectItem>
               </SelectContent>
             </Select>
             
