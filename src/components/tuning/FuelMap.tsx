@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move, Grid3X3, MousePointer, Eraser, Info, Maximize, Minimize, AlertTriangle, Settings } from "lucide-react";
+import { PlusCircle, MinusCircle, Save, X, Upload, Percent, ChevronUp, ChevronDown, LucideBox, Move, Grid3X3, MousePointer, Eraser, Info, Maximize, Minimize, AlertTriangle, Settings, FileUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import FuelMap3D from './FuelMap3D';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Toggle } from "../ui/toggle";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CellEditorProps {
   value: number;
@@ -272,6 +273,8 @@ const FuelMap = () => {
   const [dragEnd, setDragEnd] = useState<{ x: number, y: number } | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const [isProjectSetup, setIsProjectSetup] = useState<boolean>(false);
+  const [showEmptyState, setShowEmptyState] = useState<boolean>(true);
+  const [setupOption, setSetupOption] = useState<'wizard' | 'load' | null>(null);
   
   useEffect(() => {
     const setupCompleted = localStorage.getItem('ecuSetupCompleted');
@@ -280,11 +283,13 @@ const FuelMap = () => {
     if (setupCompleted) {
       const ecuSettings = JSON.parse(localStorage.getItem('ecuSettings') || '{}');
       generateBaseMap(ecuSettings);
+      setShowEmptyState(false);
     } else {
       setRpm([]);
       setLoad([]);
       setMapData([]);
       setDisplayedLoad([]);
+      setShowEmptyState(true);
     }
   }, []);
 
@@ -295,15 +300,17 @@ const FuelMap = () => {
     const engine = settings.engine || 'b16a';
     const isVtec = engine.includes('vtec') || ['b16a', 'b18c', 'k20a'].includes(engine);
     
-    const maxRpm = isVtec ? 8400 : 7000;
+    // More realistic RPM range
+    const maxRpm = isVtec ? 9200 : 7600;
     const rpmStep = 400;
     for (let rpm = 800; rpm <= maxRpm; rpm += rpmStep) {
       rpmRange.push(rpm);
     }
     
-    const maxLoad = 250;
-    const loadStep = 25;
-    for (let load = 25; load <= maxLoad; load += loadStep) {
+    // More realistic load range (kPa)
+    const loadStep = 10;
+    const maxLoad = 100;
+    for (let load = 20; load <= maxLoad; load += loadStep) {
       loadRange.push(load);
     }
     
@@ -314,45 +321,153 @@ const FuelMap = () => {
         let value = 0;
         
         if (mapType === MAP_TYPES.FUEL) {
+          // Realistic base fuel map values (in ms)
           const normalizedLoad = loadRange[i] / maxLoad;
           const normalizedRpm = rpmRange[j] / maxRpm;
           
-          value = 2 + (normalizedLoad * 10);
+          // Base fuel at idle is around 2.5-3.5ms for most engines
+          const baseFuel = 3.0;
           
-          if (normalizedRpm < 0.5) {
-            value += normalizedRpm * 4;
+          // Increase with load, modified by RPM
+          if (normalizedRpm < 0.15) {
+            // Idle region
+            value = baseFuel * (0.8 + normalizedLoad * 0.5);
+          } else if (normalizedRpm < 0.4) {
+            // Low-mid RPM, more sensitive to load
+            value = baseFuel * (0.9 + normalizedLoad * 1.5);
+          } else if (normalizedRpm < 0.7) {
+            // Mid RPM, efficiency zone
+            value = baseFuel * (1.0 + normalizedLoad * 2.0);
           } else {
-            value += 2 - (normalizedRpm - 0.5) * 2;
+            // High RPM, needs more fuel
+            value = baseFuel * (1.1 + normalizedLoad * 2.5);
           }
           
+          // VTEC adjustments
           if (isVtec && normalizedRpm > 0.6) {
-            value += (normalizedRpm - 0.6) * 3;
+            // VTEC engagement typically around 5500 RPM
+            const vtecEffect = (normalizedRpm - 0.6) * 1.3;
+            value += baseFuel * vtecEffect;
           }
         } 
         else if (mapType === MAP_TYPES.AFR) {
-          const normalizedLoad = loadRange[i] / maxLoad;
-          value = 14.7 - (normalizedLoad * 2.5);
-          value = Math.max(value, 11.5);
-        }
-        else if (mapType === MAP_TYPES.IGNITION) {
+          // Realistic AFR values
           const normalizedLoad = loadRange[i] / maxLoad;
           const normalizedRpm = rpmRange[j] / maxRpm;
           
-          value = 30 - (normalizedLoad * 25);
+          // Start at stoichiometric (14.7:1)
+          let baseAfr = 14.7;
           
-          if (normalizedRpm < 0.5) {
-            value += normalizedRpm * 5;
-          } else {
-            value -= (normalizedRpm - 0.5) * 3;
+          // Idle and cruise - lean
+          if (normalizedLoad < 0.3 && normalizedRpm < 0.4) {
+            value = baseAfr + (0.3 - normalizedLoad) * 1.0;
+          }
+          // Partial throttle - near stoichiometric
+          else if (normalizedLoad < 0.6) {
+            value = baseAfr;
+          }
+          // High load - richer
+          else {
+            value = baseAfr - (normalizedLoad - 0.6) * 4.0;
+            // Even richer at high RPM and load
+            if (normalizedRpm > 0.7) {
+              value -= (normalizedRpm - 0.7) * 0.8;
+            }
           }
           
-          value = Math.max(value, 5);
+          // Clamp to realistic values
+          value = Math.max(value, 11.5);
+          value = Math.min(value, 15.5);
         }
-        else {
-          value = 0;
+        else if (mapType === MAP_TYPES.IGNITION) {
+          // Realistic ignition timing values
+          const normalizedLoad = loadRange[i] / maxLoad;
+          const normalizedRpm = rpmRange[j] / maxRpm;
+          
+          // Base timing around 10-12 degrees
+          let baseTiming = 10;
+          
+          // Low load - more advance
+          if (normalizedLoad < 0.4) {
+            value = baseTiming + 20 - normalizedLoad * 15;
+          }
+          // Medium load - moderate advance
+          else if (normalizedLoad < 0.7) {
+            value = baseTiming + 14 - normalizedLoad * 10;
+          }
+          // High load - reduced advance to prevent knock
+          else {
+            value = baseTiming + 7 - normalizedLoad * 10;
+          }
+          
+          // RPM adjustments
+          if (normalizedRpm < 0.2) {
+            // Idle region - less advance
+            value -= 2;
+          } else if (normalizedRpm > 0.7) {
+            // High RPM - slightly reduced advance
+            value -= (normalizedRpm - 0.7) * 5;
+          }
+          
+          // Clamp to realistic values
+          value = Math.max(value, 0);
+          value = Math.min(value, 40);
+        }
+        else if (mapType === MAP_TYPES.INJ_DUTY) {
+          // Realistic injector duty cycle
+          const normalizedLoad = loadRange[i] / maxLoad;
+          const normalizedRpm = rpmRange[j] / maxRpm;
+          
+          // Idle is around 3-10%
+          if (normalizedRpm < 0.15) {
+            value = 3 + normalizedLoad * 15;
+          }
+          // Cruise is around 10-30%
+          else if (normalizedLoad < 0.5) {
+            value = 10 + normalizedLoad * 40;
+          }
+          // Higher loads
+          else {
+            value = 30 + normalizedLoad * 65;
+          }
+          
+          // RPM effect (higher RPM means less time to inject)
+          value += normalizedRpm * 20;
+          
+          // Clamp to realistic values
+          value = Math.min(value, 95); // Never want 100% duty cycle
+        }
+        else if (mapType === MAP_TYPES.BOOST) {
+          // Only relevant for boosted engines
+          if (settings.turbo || settings.supercharged) {
+            const normalizedLoad = loadRange[i] / maxLoad;
+            const normalizedRpm = rpmRange[j] / maxRpm;
+            
+            // No boost at low RPM
+            if (normalizedRpm < 0.3) {
+              value = 0;
+            }
+            // Boost builds
+            else {
+              // Base boost based on load
+              value = normalizedLoad * 15;
+              
+              // Boost builds with RPM
+              value *= (normalizedRpm - 0.3) * 1.4;
+              
+              // Clamp to realistic values
+              value = Math.max(value, 0);
+              value = Math.min(value, 20); // 20 PSI is a lot!
+            }
+          } else {
+            value = 0; // No boost for NA engines
+          }
         }
         
-        row.push(parseFloat(value.toFixed(1)));
+        // Add small variations for realism
+        const variation = (Math.random() * 0.4) - 0.2;
+        value = parseFloat((value + variation).toFixed(1));
+        row.push(value);
       }
       newMapData.push(row);
     }
@@ -616,6 +731,7 @@ const FuelMap = () => {
         setDisplayedLoad(mapData.load || load);
         if (mapData.mapType) setMapType(mapData.mapType);
         if (mapData.pressureUnit) setPressureUnit(mapData.pressureUnit as 'bar' | 'kPa');
+        setShowEmptyState(false);
         toast.success("Map loaded successfully!");
       } catch (error) {
         console.error('Error loading map:', error);
@@ -689,452 +805,3 @@ const FuelMap = () => {
 
   const getSelectionBoxStyle = () => {
     if (!isDragging || !dragStart || !dragEnd) return null;
-    
-    const left = Math.min(dragStart.x, dragEnd.x);
-    const top = Math.min(dragStart.y, dragEnd.y);
-    const width = Math.abs(dragEnd.x - dragStart.x);
-    const height = Math.abs(dragEnd.y - dragStart.y);
-    
-    return {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      height: `${height}px`,
-    };
-  };
-
-  const clearAllSelections = () => {
-    setSelectedCells([]);
-    setSelectedCell(null);
-    toast.info("Cleared all selections", {
-      icon: <Eraser size={16} />,
-    });
-  };
-
-  if (!isProjectSetup || mapData.length === 0) {
-    return (
-      <Card className="w-full h-full bg-honda-dark border-honda-gray">
-        <CardHeader>
-          <CardTitle className="text-honda-light">Tuning Maps</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[calc(100%-60px)] flex flex-col items-center justify-center">
-          <div className="text-center max-w-md">
-            <AlertTriangle size={64} className="mx-auto mb-4 text-honda-red/80" />
-            <h2 className="text-xl font-bold text-honda-light mb-2">Project Setup Required</h2>
-            <p className="text-honda-light/70 mb-6">
-              No tuning maps have been configured yet. Please complete the setup wizard to configure your ECU and generate base maps.
-            </p>
-            <Button onClick={handleStartSetup} variant="honda" size="lg">
-              <Settings className="mr-2" size={18} />
-              Start Setup Wizard
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="w-full h-full bg-honda-dark border-honda-gray overflow-hidden">
-      <CardHeader className="pb-2 flex-none">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <CardTitle className="text-honda-light">Tuning Maps</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={isVtec ? "honda" : "outline"}
-                size="sm"
-                onClick={() => setIsVtec(true)}
-                className={`${!isVtec && 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
-              >
-                <Maximize size={14} className="mr-1" />
-                High Cam
-              </Button>
-              <Button
-                variant={!isVtec ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsVtec(false)}
-                className={`${isVtec && 'bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark'}`}
-              >
-                <Minimize size={14} className="mr-1" />
-                Low Cam
-              </Button>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={mapType} onValueChange={setMapType}>
-              <SelectTrigger className="w-[120px] h-8 text-sm bg-honda-gray border-honda-gray">
-                <SelectValue placeholder="Map Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={MAP_TYPES.FUEL}>
-                  <div className="flex items-center">
-                    <PlusCircle size={14} className="mr-2 text-blue-400" />
-                    Fuel
-                  </div>
-                </SelectItem>
-                <SelectItem value={MAP_TYPES.AFR}>
-                  <div className="flex items-center">
-                    <Percent size={14} className="mr-2 text-green-400" />
-                    AFR Target
-                  </div>
-                </SelectItem>
-                <SelectItem value={MAP_TYPES.IGNITION}>
-                  <div className="flex items-center">
-                    <ChevronUp size={14} className="mr-2 text-yellow-400" />
-                    Ignition
-                  </div>
-                </SelectItem>
-                <SelectItem value={MAP_TYPES.INJ_DUTY}>
-                  <div className="flex items-center">
-                    <ChevronDown size={14} className="mr-2 text-purple-400" />
-                    Injector Duty
-                  </div>
-                </SelectItem>
-                <SelectItem value={MAP_TYPES.BOOST}>
-                  <div className="flex items-center">
-                    <Maximize size={14} className="mr-2 text-red-400" />
-                    Boost
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={pressureUnit} onValueChange={(value) => setPressureUnit(value as 'bar' | 'kPa')}>
-              <SelectTrigger className="w-[90px] h-8 text-sm bg-honda-gray border-honda-gray">
-                <SelectValue placeholder="Unit" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bar">Bar</SelectItem>
-                <SelectItem value="kPa">kPa</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                >
-                  <Upload size={16} className="mr-2" />
-                  Load Map
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-honda-dark border-honda-gray">
-                <DialogHeader>
-                  <DialogTitle className="text-honda-light">Load Map</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm text-honda-light/70">Select Map File</Label>
-                    <Input
-                      type="file"
-                      accept=".json"
-                      onChange={handleLoadMap}
-                      className="bg-honda-gray border-honda-gray text-honda-light"
-                    />
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveMap}
-              className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-            >
-              <Save size={16} className="mr-2" />
-              Save Map
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="h-[calc(100%-60px)] pb-2 overflow-hidden flex flex-col">
-        <div className="space-y-2 flex-1 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between mb-1 flex-none">
-            <div className="flex items-center gap-2">
-              <Toggle
-                pressed={selectionMode}
-                onPressedChange={toggleSelectionMode}
-                variant="honda"
-                className="h-8"
-              >
-                <Grid3X3 size={14} className="mr-1" />
-                Multi-Select
-                {selectedCells.length > 0 && (
-                  <span className="ml-1 bg-honda-accent/20 px-1.5 py-0.5 rounded-full text-xs">
-                    {selectedCells.length}
-                  </span>
-                )}
-              </Toggle>
-              
-              {selectedCells.length > 0 && (
-                <>
-                  <div className="flex items-center">
-                    <Label className="text-xs text-honda-light mr-2">Adj %:</Label>
-                    <Input
-                      type="number"
-                      value={percentageAdjustment}
-                      onChange={(e) => setPercentageAdjustment(Number(e.target.value))}
-                      className="w-16 h-8 text-sm bg-honda-gray border-honda-gray text-honda-light"
-                    />
-                  </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => adjustValue(-percentageAdjustment, true)}
-                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                  >
-                    <MinusCircle size={14} className="mr-1" />
-                    {percentageAdjustment}%
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => adjustValue(percentageAdjustment, true)}
-                    className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                  >
-                    <PlusCircle size={14} className="mr-1" />
-                    {percentageAdjustment}%
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={clearAllSelections}
-                    className="bg-honda-red/10 border-honda-red/30 text-honda-red hover:bg-honda-red/20"
-                  >
-                    <Eraser size={14} className="mr-1" />
-                    Clear
-                  </Button>
-                </>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={interpolateMap}
-                className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-              >
-                <Grid3X3 size={14} className="mr-1" />
-                Interpolate
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={generateMapReport}
-                className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-              >
-                <Info size={14} className="mr-1" />
-                Map Info
-              </Button>
-            </div>
-          </div>
-          
-          <ScrollArea 
-            className="flex-1 relative fuel-map-container" 
-            style={{height: "calc(100% - 340px)"}}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={() => setIsDragging(false)}
-          >
-            <div ref={chartContainerRef} className="w-full">
-              <table ref={tableRef} className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    <th className="grid-cell grid-header">RPM / Load ({pressureUnit})</th>
-                    {rpm.map((r, idx) => (
-                      <th key={idx} className="grid-cell grid-header">{r}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {mapData.map((row, rowIdx) => (
-                    <tr key={rowIdx}>
-                      <td className="grid-cell grid-header">
-                        {getDisplayedLoadValue(rowIdx)}
-                      </td>
-                      {row.map((value, colIdx) => (
-                        <td 
-                          key={colIdx} 
-                          className={`grid-cell ${getCellColorClass(value, mapType, minValue, maxValue)} ${
-                            (selectedCell?.row === rowIdx && selectedCell?.col === colIdx) || 
-                            selectedCells.some(cell => cell.row === rowIdx && cell.col === colIdx) 
-                              ? 'grid-highlight' : ''
-                          }`}
-                          onClick={(e) => handleCellClick(rowIdx, colIdx, e.ctrlKey || e.metaKey)}
-                        >
-                          {value.toFixed(1)}{getMapTypeUnit(mapType)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              
-              {isDragging && dragStart && dragEnd && (
-                <div 
-                  className="selection-box"
-                  style={getSelectionBoxStyle() || {}}
-                ></div>
-              )}
-            </div>
-          </ScrollArea>
-
-          {showEditor && (selectedCells.length > 0 || selectedCell) && (
-            <DraggableEditor className="bg-honda-dark border border-honda-gray/50 rounded-md shadow-lg">
-              <div className="p-3">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(-1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      <MinusCircle size={14} className="mr-1" />
-                      1
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(-0.1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      <MinusCircle size={14} className="mr-1" />
-                      0.1
-                    </Button>
-                    
-                    {selectedCell && (
-                      <Input
-                        type="number"
-                        value={mapData[selectedCell.row][selectedCell.col]}
-                        onChange={(e) => {
-                          const newMapData = [...mapData];
-                          newMapData[selectedCell.row][selectedCell.col] = parseFloat(e.target.value);
-                          setMapData(newMapData);
-                        }}
-                        className="w-24 text-center bg-honda-gray border-honda-gray text-honda-light"
-                        placeholder="Value"
-                      />
-                    )}
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(0.1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      <PlusCircle size={14} className="mr-1" />
-                      0.1
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => adjustValue(1)}
-                      className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                    >
-                      <PlusCircle size={14} className="mr-1" />
-                      1
-                    </Button>
-                  </div>
-                  
-                  {selectedCell && (
-                    <div className="text-xs text-honda-light/70">
-                      Selected: RPM: {rpm[selectedCell.col]}, Load: {getDisplayedLoadValue(selectedCell.row)} {pressureUnit}
-                    </div>
-                  )}
-                  
-                  {selectedCells.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                      <div className="text-xs text-honda-light/70">
-                        {selectedCells.length} cells selected
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => adjustValue(-percentageAdjustment, true)}
-                          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                        >
-                          <MinusCircle size={14} className="mr-1" />
-                          {percentageAdjustment}%
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => adjustValue(percentageAdjustment, true)}
-                          className="bg-honda-gray border-honda-gray text-honda-light hover:bg-honda-dark"
-                        >
-                          <PlusCircle size={14} className="mr-1" />
-                          {percentageAdjustment}%
-                        </Button>
-                      </div>
-                      <Button 
-                        variant="destructive" 
-                        size="sm" 
-                        onClick={() => setSelectedCells([])}
-                        className="bg-red-700 hover:bg-red-800"
-                      >
-                        <Eraser size={14} className="mr-1" />
-                        Clear Selection
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </DraggableEditor>
-          )}
-
-          <div className="h-[300px] flex-none mt-2">
-            <h3 className="text-sm font-medium text-honda-light mb-1">3D View</h3>
-            <FuelMap3D 
-              mapData={mapData}
-              rpm={rpm}
-              load={displayedLoad}
-              mapType={mapType}
-            />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-export default FuelMap;
-
-const styles = `
-  .cell-value-low {
-    background-color: #22c55e;
-    color: white;
-  }
-  .cell-value-low-mid {
-    background-color: #84cc16;
-    color: white;
-  }
-  .cell-value-mid {
-    background-color: #eab308;
-    color: black;
-  }
-  .cell-value-mid-high {
-    background-color: #f97316;
-    color: white;
-  }
-  .cell-value-high {
-    background-color: #ef4444;
-    color: white;
-  }
-  .grid-highlight {
-    outline: 2px solid #ffffff;
-    position: relative;
-    z-index: 10;
-  }
-`;
