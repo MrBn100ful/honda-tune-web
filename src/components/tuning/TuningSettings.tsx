@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -173,14 +174,15 @@ const SetupWizard = ({ isOpen, onClose, onComplete }: SetupWizardProps) => {
   const [selectedEngine, setSelectedEngine] = useState("b16a");
   const [selectedTransmission, setSelectedTransmission] = useState("b-series-m5");
   const [injectorSize, setInjectorSize] = useState(240);
+  const [fuelPressure, setFuelPressure] = useState("3.0");
   
   const handleComplete = () => {
     const settings = {
       engine: selectedEngine,
       transmission: selectedTransmission,
-      injectorSize: parseInt(injectorSize, 10),
+      injectorSize: injectorSize,
       fuelPressure: parseFloat(fuelPressure),
-      cylinderCount: engineDetails?.cylinderCount || 4
+      cylinderCount: ENGINES.find(e => e.code === selectedEngine)?.cylinders || 4
     };
     
     localStorage.setItem('ecuSettings', JSON.stringify(settings));
@@ -426,6 +428,10 @@ const TuningSettings = () => {
   }, [transmissionType]);
 
   useEffect(() => {
+    // Clear localStorage for testing purposes
+    // localStorage.removeItem('ecuSetupCompleted');
+    // localStorage.removeItem('ecuSettings');
+    
     const setupCompleted = localStorage.getItem('ecuSetupCompleted');
     if (setupCompleted) {
       setHasCompletedSetup(true);
@@ -454,6 +460,7 @@ const TuningSettings = () => {
     setTransmissionType(settings.transmission);
     setInjectorSize(settings.injectorSize);
     
+    // Reload the page to update all components with the new settings
     window.location.reload();
   };
 
@@ -629,8 +636,16 @@ const TuningSettings = () => {
     setShowSetupWizard(true);
   };
 
+  const forceOpenSetupWizard = () => {
+    // Clear local storage to force setup wizard to open
+    localStorage.removeItem('ecuSetupCompleted');
+    localStorage.removeItem('ecuSettings');
+    setHasCompletedSetup(false);
+    setShowSetupWizard(true);
+  };
+
   return (
-    <React.Fragment>
+    <>
       <SetupWizard 
         isOpen={showSetupWizard}
         onClose={() => setShowSetupWizard(false)}
@@ -676,142 +691,163 @@ const TuningSettings = () => {
           </div>
         </CardHeader>
         <CardContent className="overflow-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
-          <Tabs defaultValue="engine">
-            <TabsList>
-              <TabsTrigger value="engine">Engine Setup</TabsTrigger>
-              <TabsTrigger value="transmission">Transmission</TabsTrigger>
-              <TabsTrigger value="fuel">Fuel</TabsTrigger>
-              <TabsTrigger value="ignition">Ignition</TabsTrigger>
-              <TabsTrigger value="launch">Launch Control</TabsTrigger>
-              <TabsTrigger value="boost">Boost Control</TabsTrigger>
-              <TabsTrigger value="connection">Connection</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="engine" className="pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="engine-type" className="text-honda-light">Engine Type</Label>
-                    <Select value={engineType} onValueChange={setEngineType}>
-                      <SelectTrigger id="engine-type" className="bg-honda-gray border-honda-gray">
-                        <SelectValue placeholder="Select Engine Type" />
-                      </SelectTrigger>
-                      <SelectContent position="item-aligned">
-                        {ENGINES.map(engine => (
-                          <SelectItem key={engine.code} value={engine.code}>
-                            <div className="flex items-center">
-                              <Cpu className="mr-2 h-4 w-4" />
-                              <span>{engine.name} ({engine.displacement}L)</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {selectedEngine && (
-                    <div className="rounded-md border border-honda-gray p-4">
-                      <h3 className="text-sm font-medium text-honda-light mb-2">Engine Specs</h3>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-honda-light/70">Displacement:</div>
-                        <div className="text-honda-light font-medium">{selectedEngine.displacement}L</div>
-                        
-                        <div className="text-honda-light/70">Cylinders:</div>
-                        <div className="text-honda-light font-medium">{selectedEngine.cylinders}</div>
-                        
-                        <div className="text-honda-light/70">Max Power:</div>
-                        <div className="text-honda-light font-medium">
-                          {selectedEngine.maxHP || "-"} HP ({selectedEngine.maxHP ? Math.round(selectedEngine.maxHP * 0.7457) : "-"} kW)
+          {!hasCompletedSetup && (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-honda-light mb-3">Welcome to Honda ECU Tuner</h2>
+                <p className="text-honda-light/80 mb-6">
+                  Please set up your engine and transmission configuration to get started.
+                </p>
+              </div>
+              <Button 
+                size="lg" 
+                className="bg-honda-red hover:bg-honda-red/90"
+                onClick={forceOpenSetupWizard}
+              >
+                <Settings2 className="mr-2" size={20} />
+                Start ECU Setup Wizard
+              </Button>
+            </div>
+          )}
+          
+          {hasCompletedSetup && (
+            <Tabs defaultValue="engine">
+              <TabsList>
+                <TabsTrigger value="engine">Engine Setup</TabsTrigger>
+                <TabsTrigger value="transmission">Transmission</TabsTrigger>
+                <TabsTrigger value="fuel">Fuel</TabsTrigger>
+                <TabsTrigger value="ignition">Ignition</TabsTrigger>
+                <TabsTrigger value="launch">Launch Control</TabsTrigger>
+                <TabsTrigger value="boost">Boost Control</TabsTrigger>
+                <TabsTrigger value="connection">Connection</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="engine" className="pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="engine-type" className="text-honda-light">Engine Type</Label>
+                      <Select value={engineType} onValueChange={setEngineType}>
+                        <SelectTrigger id="engine-type" className="bg-honda-gray border-honda-gray">
+                          <SelectValue placeholder="Select Engine Type" />
+                        </SelectTrigger>
+                        <SelectContent position="item-aligned">
+                          {ENGINES.map(engine => (
+                            <SelectItem key={engine.code} value={engine.code}>
+                              <div className="flex items-center">
+                                <Cpu className="mr-2 h-4 w-4" />
+                                <span>{engine.name} ({engine.displacement}L)</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {selectedEngine && (
+                      <div className="rounded-md border border-honda-gray p-4">
+                        <h3 className="text-sm font-medium text-honda-light mb-2">Engine Specs</h3>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="text-honda-light/70">Displacement:</div>
+                          <div className="text-honda-light font-medium">{selectedEngine.displacement}L</div>
+                          
+                          <div className="text-honda-light/70">Cylinders:</div>
+                          <div className="text-honda-light font-medium">{selectedEngine.cylinders}</div>
+                          
+                          <div className="text-honda-light/70">Max Power:</div>
+                          <div className="text-honda-light font-medium">
+                            {selectedEngine.maxHP || "-"} HP ({selectedEngine.maxHP ? Math.round(selectedEngine.maxHP * 0.7457) : "-"} kW)
+                          </div>
+                          
+                          <div className="text-honda-light/70">Max Torque:</div>
+                          <div className="text-honda-light font-medium">{selectedEngine.maxTorque || "-"} Nm</div>
+                          
+                          <div className="text-honda-light/70">VTEC:</div>
+                          <div className="text-honda-light font-medium">{selectedEngine.vtecSupported ? "Yes" : "No"}</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <Label htmlFor="injector-size" className="text-honda-light">Injector Size (cc/min)</Label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[injectorSize]}
+                          max={1000}
+                          min={190}
+                          step={10}
+                          onValueChange={(value) => setInjectorSize(value[0])}
+                          className="flex-1"
+                        />
+                        <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                          {injectorSize}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedEngine.vtecSupported && (
+                      <>
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            id="vtec" 
+                            checked={vtecEnabled}
+                            onCheckedChange={setVtecEnabled}
+                          />
+                          <Label htmlFor="vtec" className="text-honda-light">VTEC Enabled</Label>
                         </div>
                         
-                        <div className="text-honda-light/70">Max Torque:</div>
-                        <div className="text-honda-light font-medium">{selectedEngine.maxTorque || "-"} Nm</div>
-                        
-                        <div className="text-honda-light/70">VTEC:</div>
-                        <div className="text-honda-light font-medium">{selectedEngine.vtecSupported ? "Yes" : "No"}</div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <Label htmlFor="injector-size" className="text-honda-light">Injector Size (cc/min)</Label>
-                    <div className="flex items-center gap-4">
-                      <Slider
-                        value={[injectorSize]}
-                        max={1000}
-                        min={190}
-                        step={10}
-                        onValueChange={(value) => setInjectorSize(value[0])}
-                        className="flex-1"
-                      />
-                      <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                        {injectorSize}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {selectedEngine.vtecSupported && (
-                    <React.Fragment>
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          id="vtec" 
-                          checked={vtecEnabled}
-                          onCheckedChange={setVtecEnabled}
-                        />
-                        <Label htmlFor="vtec" className="text-honda-light">VTEC Enabled</Label>
-                      </div>
-                      
-                      {vtecEnabled && (
-                        <div>
-                          <Label htmlFor="vtec-point" className="text-honda-light">VTEC Engagement (RPM)</Label>
-                          <div className="flex items-center gap-4">
-                            <Slider
-                              value={[vtecPoint]}
-                              max={7000}
-                              min={3000}
-                              step={100}
-                              onValueChange={(value) => setVtecPoint(value[0])}
-                              className="flex-1"
-                            />
-                            <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
-                              {vtecPoint}
+                        {vtecEnabled && (
+                          <div>
+                            <Label htmlFor="vtec-point" className="text-honda-light">VTEC Engagement (RPM)</Label>
+                            <div className="flex items-center gap-4">
+                              <Slider
+                                value={[vtecPoint]}
+                                max={7000}
+                                min={3000}
+                                step={100}
+                                onValueChange={(value) => setVtecPoint(value[0])}
+                                className="flex-1"
+                              />
+                              <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                                {vtecPoint}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </React.Fragment>
-                  )}
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="transmission" className="pt-4">
-              {/* Transmission content */}
-            </TabsContent>
-            
-            <TabsContent value="fuel" className="pt-4">
-              {/* Fuel content */}
-            </TabsContent>
-            
-            <TabsContent value="ignition" className="pt-4">
-              {/* Ignition content */}
-            </TabsContent>
-            
-            <TabsContent value="launch" className="pt-4">
-              {/* Launch Control content */}
-            </TabsContent>
-            
-            <TabsContent value="boost" className="pt-4">
-              {/* Boost Control content */}
-            </TabsContent>
-            
-            <TabsContent value="connection" className="pt-4">
-              {/* Connection content */}
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+              
+              <TabsContent value="transmission" className="pt-4">
+                {/* Transmission content */}
+              </TabsContent>
+              
+              <TabsContent value="fuel" className="pt-4">
+                {/* Fuel content */}
+              </TabsContent>
+              
+              <TabsContent value="ignition" className="pt-4">
+                {/* Ignition content */}
+              </TabsContent>
+              
+              <TabsContent value="launch" className="pt-4">
+                {/* Launch Control content */}
+              </TabsContent>
+              
+              <TabsContent value="boost" className="pt-4">
+                {/* Boost Control content */}
+              </TabsContent>
+              
+              <TabsContent value="connection" className="pt-4">
+                {/* Connection content */}
+              </TabsContent>
+            </Tabs>
+          )}
         </CardContent>
       </Card>
-    </React.Fragment>
+    </>
   );
 };
 

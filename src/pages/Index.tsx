@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FuelMap from '@/components/tuning/FuelMap';
@@ -8,6 +8,14 @@ import DataLogging from '@/components/tuning/DataLogging';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("maps");
+  
+  useEffect(() => {
+    // Check if setup has been completed
+    const setupCompleted = localStorage.getItem('ecuSetupCompleted');
+    if (!setupCompleted) {
+      setActiveTab("settings");
+    }
+  }, []);
   
   return (
     <Layout>
