@@ -3,15 +3,12 @@ import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Toggle } from "@/components/ui/toggle";
-import { PlusCircle, MinusCircle, Percent, LucideBox, Grid3X3, Info, Save, Upload, MousePointer } from "lucide-react";
+import { PlusCircle, MinusCircle, Percent, LucideBox, Info, Save, Upload } from "lucide-react";
 import { MAP_TYPES } from './utils/mapUtils';
 
 interface MapControlsProps {
   mapType: string;
   setMapType: (type: string) => void;
-  selectionMode: boolean;
-  toggleSelectionMode: () => void;
   selectedCellsCount: number;
   adjustValue: (amount: number, isPercentage?: boolean) => void;
   percentageAdjustment: number;
@@ -25,8 +22,6 @@ interface MapControlsProps {
 const MapControls: React.FC<MapControlsProps> = ({
   mapType,
   setMapType,
-  selectionMode,
-  toggleSelectionMode,
   selectedCellsCount,
   adjustValue,
   percentageAdjustment,
@@ -52,17 +47,10 @@ const MapControls: React.FC<MapControlsProps> = ({
           </SelectContent>
         </Select>
         
-        <div className="flex-shrink-0">
-          <Toggle 
-            pressed={selectionMode}
-            onPressedChange={toggleSelectionMode}
-            aria-label="Multi-select mode"
-            className={`h-9 ${selectionMode ? 'bg-primary text-primary-foreground' : ''}`}
-            title="Toggle multi-select mode"
-          >
-            <Grid3X3 size={16} className="mr-1" />
-            Multi-select
-          </Toggle>
+        <div className="text-sm text-muted-foreground">
+          {selectedCellsCount > 0 && (
+            <span>{selectedCellsCount} cells selected</span>
+          )}
         </div>
       </div>
       

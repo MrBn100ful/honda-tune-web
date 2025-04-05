@@ -12,7 +12,6 @@ import {
   getCellAtPosition, 
   selectCellsInRange, 
   adjustMapValues, 
-  toggleSelectionMode as toggleSelection,
   interpolateMap as interpolate,
   generateMapReport as generateReport
 } from './utils/mapUtils';
@@ -21,14 +20,12 @@ const FuelMap = () => {
   const [isVtec, setIsVtec] = useState(false);
   const [mapType, setMapType] = useState<string>(MAP_TYPES.FUEL);
   const [mapData, setMapData] = useState<number[][]>([]);
+  const [vtecMapData, setVtecMapData] = useState<number[][]>([]);
   const [rpm, setRpm] = useState<number[]>([]);
   const [load, setLoad] = useState<number[]>([]);
-  const [selectedCell, setSelectedCell] = useState<{ row: number, col: number } | null>(null);
   const [selectedCells, setSelectedCells] = useState<{ row: number, col: number }[]>([]);
-  const [selectionMode, setSelectionMode] = useState<boolean>(false);
   const [pressureUnit, setPressureUnit] = useState<'bar' | 'kPa'>('kPa');
   const [displayedLoad, setDisplayedLoad] = useState<number[]>([]);
-  const chartContainerRef = useRef<HTMLDivElement>(null);
   const [percentageAdjustment, setPercentageAdjustment] = useState<number>(5);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number, y: number } | null>(null);
@@ -36,6 +33,7 @@ const FuelMap = () => {
   const tableRef = useRef<HTMLTableElement>(null);
   const [showEmptyState, setShowEmptyState] = useState<boolean>(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
   
   // Initialize on load
   useEffect(() => {
@@ -49,6 +47,7 @@ const FuelMap = () => {
       setRpm([]);
       setLoad([]);
       setMapData([]);
+      setVtecMapData([]);
       setDisplayedLoad([]);
       setShowEmptyState(true);
     }
@@ -83,6 +82,15 @@ const FuelMap = () => {
     setMapData(newMapData);
     setIsVtec(vtec);
     setDisplayedLoad(newDisplayedLoad);
+    
+    // Generate VTEC map if the engine has VTEC
+    if (vtec) {
+      // Create a slightly modified version for VTEC
+      const vtecData = newMapData.map(row => 
+        row.map(cell => cell * 1.15 + (Math.random() * 0.5))
+      );
+      setVtecMapData(vtecData);
+    }
   };
   
   const handleStartSetup = () => {
@@ -98,32 +106,22 @@ const FuelMap = () => {
     
     // If negative indices, clear selection
     if (row < 0 || col < 0) {
-      setSelectedCell(null);
+      setSelectedCells([]);
       return;
     }
     
-    if (isMultiSelect || selectionMode) {
-      const existingIndex = selectedCells.findIndex(cell => cell.row === row && cell.col === col);
-      if (existingIndex > -1) {
-        const newSelection = [...selectedCells];
-        newSelection.splice(existingIndex, 1);
-        setSelectedCells(newSelection);
-      } else {
-        setSelectedCells([...selectedCells, { row, col }]);
-      }
+    const existingIndex = selectedCells.findIndex(cell => cell.row === row && cell.col === col);
+    if (existingIndex > -1) {
+      const newSelection = [...selectedCells];
+      newSelection.splice(existingIndex, 1);
+      setSelectedCells(newSelection);
     } else {
-      setSelectedCells([]);
-      setSelectedCell({ row, col });
+      setSelectedCells([...selectedCells, { row, col }]);
     }
   };
   
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
-    
-    if (!e.ctrlKey && !e.metaKey) {
-      setSelectedCells([]);
-      setSelectedCell(null);
-    }
     
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
@@ -157,35 +155,44 @@ const FuelMap = () => {
   };
   
   const adjustValue = (amount: number, isPercentage: boolean = false) => {
-    const newMapData = adjustMapValues(mapData, selectedCells, selectedCell, amount, isPercentage);
+    const newMapData = adjustMapValues(mapData, selectedCells, null, amount, isPercentage);
     setMapData(newMapData);
+    
+    // Also adjust VTEC map if applicable
+    if (isVtec && vtecMapData.length > 0) {
+      const newVtecMapData = adjustMapValues(vtecMapData, selectedCells, null, amount, isPercentage);
+      setVtecMapData(newVtecMapData);
+    }
   };
   
   const setExactValue = (value: number) => {
-    if (!selectedCell) return;
-    
-    const { row, col } = selectedCell;
-    const newMapData = [...mapData];
-    newMapData[row][col] = value;
-    setMapData(newMapData);
-    setSelectedCell(null);
-  };
-  
-  const handleToggleSelectionMode = () => {
-    toggleSelection(selectionMode, setSelectionMode, setSelectedCells);
+    // This function is no longer used since we removed direct editing
   };
   
   const handleInterpolateMap = () => {
     const newMapData = interpolate(mapData, selectedCells);
     setMapData(newMapData);
+    
+    if (isVtec && vtecMapData.length > 0) {
+      const newVtecMapData = interpolate(vtecMapData, selectedCells);
+      setVtecMapData(newVtecMapData);
+    }
   };
   
   const handleGenerateMapReport = () => {
     generateReport(mapData, mapType, rpm, displayedLoad, isVtec, pressureUnit);
+    
+    if (isVtec && vtecMapData.length > 0) {
+      generateReport(vtecMapData, `${mapType} VTEC`, rpm, displayedLoad, isVtec, pressureUnit);
+    }
   };
   
   const handleSaveMap = () => {
     saveMap(mapType, rpm, displayedLoad, mapData, isVtec, pressureUnit);
+    
+    if (isVtec && vtecMapData.length > 0) {
+      saveMap(`${mapType} VTEC`, rpm, displayedLoad, vtecMapData, isVtec, pressureUnit);
+    }
   };
 
   const handleLoadMapClick = () => {
@@ -233,8 +240,6 @@ const FuelMap = () => {
       <MapControls
         mapType={mapType}
         setMapType={setMapType}
-        selectionMode={selectionMode}
-        toggleSelectionMode={handleToggleSelectionMode}
         selectedCellsCount={selectedCells.length}
         adjustValue={adjustValue}
         percentageAdjustment={percentageAdjustment}
@@ -245,14 +250,14 @@ const FuelMap = () => {
         onLoadClick={handleLoadMapClick}
       />
       
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col flex-1 overflow-hidden">
         {/* Table View */}
-        <div className="w-1/2 overflow-auto border-r">
+        <div className="h-2/3 overflow-auto border-b">
           <TableView 
             rpm={rpm}
             displayedLoad={displayedLoad}
             mapData={mapData}
-            selectedCell={selectedCell}
+            selectedCell={null}
             selectedCells={selectedCells}
             pressureUnit={pressureUnit}
             mapType={mapType}
@@ -265,11 +270,12 @@ const FuelMap = () => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             tableRef={tableRef}
+            vtecMapData={isVtec ? vtecMapData : undefined}
           />
         </div>
         
         {/* 3D View */}
-        <div className="w-1/2 p-2" ref={chartContainerRef}>
+        <div className="h-1/3 p-2" ref={chartContainerRef}>
           <div className="w-full h-full bg-card rounded-lg overflow-hidden">
             <FuelMap3D 
               mapData={mapData} 

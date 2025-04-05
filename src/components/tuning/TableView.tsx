@@ -1,6 +1,5 @@
 
 import React, { useRef, useMemo } from 'react';
-import CellEditor from './CellEditor';
 import { getCellColorClass, getSelectionBoxStyle, getMapTypeUnit } from './utils/mapUtils';
 
 interface TableViewProps {
@@ -20,6 +19,7 @@ interface TableViewProps {
   onMouseMove: (e: React.MouseEvent) => void;
   onMouseUp: () => void;
   tableRef: React.RefObject<HTMLTableElement>;
+  vtecMapData?: number[][];
 }
 
 const TableView: React.FC<TableViewProps> = ({
@@ -38,11 +38,21 @@ const TableView: React.FC<TableViewProps> = ({
   onMouseDown,
   onMouseMove,
   onMouseUp,
-  tableRef
+  tableRef,
+  vtecMapData
 }) => {
   const minValue = useMemo(() => mapData.length > 0 ? Math.min(...mapData.flat()) : 0, [mapData]);
   const maxValue = useMemo(() => mapData.length > 0 ? Math.max(...mapData.flat()) : 0, [mapData]);
   const unit = useMemo(() => getMapTypeUnit(mapType), [mapType]);
+  
+  // VTEC map stats
+  const vtecMinValue = useMemo(() => 
+    vtecMapData && vtecMapData.length > 0 ? Math.min(...vtecMapData.flat()) : 0, 
+  [vtecMapData]);
+  
+  const vtecMaxValue = useMemo(() => 
+    vtecMapData && vtecMapData.length > 0 ? Math.max(...vtecMapData.flat()) : 0, 
+  [vtecMapData]);
   
   const getDisplayedLoadValue = (idx: number) => {
     if (!displayedLoad || idx >= displayedLoad.length || displayedLoad[idx] === undefined) {
@@ -62,6 +72,19 @@ const TableView: React.FC<TableViewProps> = ({
           <div className="w-4 h-4 bg-blue-500 rounded"></div>
           <span>Low: {minValue.toFixed(1)}{unit}</span>
         </div>
+        
+        {vtecMapData && (
+          <>
+            <div className="flex items-center gap-2 ml-6">
+              <div className="w-4 h-4 bg-red-700 rounded"></div>
+              <span>VTEC High: {vtecMaxValue.toFixed(1)}{unit}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-700 rounded"></div>
+              <span>VTEC Low: {vtecMinValue.toFixed(1)}{unit}</span>
+            </div>
+          </>
+        )}
       </div>
     );
   };
@@ -96,29 +119,26 @@ const TableView: React.FC<TableViewProps> = ({
                   {getDisplayedLoadValue(rowIdx)} {pressureUnit}
                 </td>
                 {row.map((cell, colIdx) => {
-                  const isSelected = selectedCell?.row === rowIdx && selectedCell?.col === colIdx;
-                  const isMultiSelected = selectedCells.some(s => s.row === rowIdx && s.col === colIdx);
-                  
+                  const isSelected = selectedCells.some(s => s.row === rowIdx && s.col === colIdx);
                   const cellColorClass = getCellColorClass(cell, mapType, minValue, maxValue);
+                  const vtecValue = vtecMapData?.[rowIdx]?.[colIdx];
                   
                   return (
                     <td 
                       key={colIdx} 
                       className={`relative border border-border/30 p-1 text-center cursor-pointer transition-colors
-                        ${isSelected ? 'bg-blue-800 text-white' : ''}
-                        ${isMultiSelected ? 'bg-blue-600 text-white' : ''}
-                        ${!isSelected && !isMultiSelected ? cellColorClass : ''}`}
+                        ${isSelected ? 'bg-blue-600 text-white' : cellColorClass}`}
                       onClick={(e) => onCellClick(rowIdx, colIdx, e.ctrlKey || e.metaKey)}
                     >
-                      {isSelected && selectedCell ? (
-                        <CellEditor
-                          value={cell}
-                          onSave={(newValue) => setExactValue(newValue)}
-                          onCancel={() => onCellClick(-1, -1, false)}
-                        />
-                      ) : (
+                      <div className="flex flex-col">
                         <span>{cell.toFixed(1)}</span>
-                      )}
+                        
+                        {vtecMapData && vtecValue !== undefined && (
+                          <span className="text-[10px] text-blue-400 mt-1">
+                            {vtecValue.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   );
                 })}

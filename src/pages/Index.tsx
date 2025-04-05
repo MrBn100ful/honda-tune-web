@@ -7,6 +7,7 @@ import { Settings2 } from "lucide-react";
 import FuelMap from '@/components/tuning/FuelMap';
 import TuningSettings from '@/components/tuning/TuningSettings';
 import DataLogging from '@/components/tuning/DataLogging';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("maps");
@@ -14,8 +15,12 @@ const Index = () => {
   useEffect(() => {
     // Check if setup has been completed
     const setupCompleted = localStorage.getItem('ecuSetupCompleted');
+    
     if (!setupCompleted) {
       setActiveTab("settings");
+      toast.info("Welcome! Please complete the setup or load an existing map to continue.", {
+        duration: 5000,
+      });
     }
   }, []);
   

@@ -114,18 +114,18 @@ export const getCellColorClass = (value: number, mapType: string, min: number, m
   const normalizedValue = (value - min) / range;
   
   if (mapType === MAP_TYPES.AFR) {
-    if (normalizedValue > 0.8) return 'cell-value-low';
-    if (normalizedValue > 0.6) return 'cell-value-low-mid';
-    if (normalizedValue > 0.4) return 'cell-value-mid';
-    if (normalizedValue > 0.2) return 'cell-value-mid-high';
-    return 'cell-value-high';
+    if (normalizedValue > 0.8) return 'bg-blue-100 text-blue-900';
+    if (normalizedValue > 0.6) return 'bg-blue-200 text-blue-900';
+    if (normalizedValue > 0.4) return 'bg-blue-300 text-blue-900';
+    if (normalizedValue > 0.2) return 'bg-blue-400 text-blue-900';
+    return 'bg-blue-500 text-white';
   }
   
-  if (normalizedValue < 0.2) return 'cell-value-low';
-  if (normalizedValue < 0.4) return 'cell-value-low-mid';
-  if (normalizedValue < 0.6) return 'cell-value-mid';
-  if (normalizedValue < 0.8) return 'cell-value-mid-high';
-  return 'cell-value-high';
+  if (normalizedValue < 0.2) return 'bg-blue-500 text-white';
+  if (normalizedValue < 0.4) return 'bg-blue-400 text-blue-900';
+  if (normalizedValue < 0.6) return 'bg-blue-300 text-blue-900';
+  if (normalizedValue < 0.8) return 'bg-orange-300 text-orange-900';
+  return 'bg-red-500 text-white';
 };
 
 export const generateBaseMap = (settings: any, mapType: string, pressureUnit: 'bar' | 'kPa') => {
@@ -463,9 +463,7 @@ export const adjustMapValues = (
 export const toggleSelectionMode = (selectionMode: boolean, setSelectionMode: (mode: boolean) => void, setSelectedCells: (cells: { row: number, col: number }[]) => void) => {
   setSelectionMode(!selectionMode);
   if (!selectionMode) {
-    toast.info("Multi-select mode enabled. Click and drag to select multiple cells.", {
-      duration: 3000,
-    });
+    toast.info("Multi-select mode enabled. Click and drag to select multiple cells.");
   } else {
     toast.info("Multi-select mode disabled.");
     setSelectedCells([]);
