@@ -39,17 +39,18 @@ const FuelMap = () => {
   useEffect(() => {
     const setupCompleted = localStorage.getItem('ecuSetupCompleted');
     
+    // Always show empty state on first load, regardless of setup status
+    setShowEmptyState(true);
+    
     if (setupCompleted) {
       const ecuSettings = JSON.parse(localStorage.getItem('ecuSettings') || '{}');
       initializeMapFromSettings(ecuSettings);
-      setShowEmptyState(false);
     } else {
       setRpm([]);
       setLoad([]);
       setMapData([]);
       setVtecMapData([]);
       setDisplayedLoad([]);
-      setShowEmptyState(true);
     }
   }, []);
 
@@ -116,7 +117,11 @@ const FuelMap = () => {
       newSelection.splice(existingIndex, 1);
       setSelectedCells(newSelection);
     } else {
-      setSelectedCells([...selectedCells, { row, col }]);
+      if (isMultiSelect) {
+        setSelectedCells([...selectedCells, { row, col }]);
+      } else {
+        setSelectedCells([{ row, col }]);
+      }
     }
   };
   
@@ -232,7 +237,7 @@ const FuelMap = () => {
   };
   
   if (showEmptyState) {
-    return <EmptyState handleStartSetup={handleStartSetup} handleLoadMap={handleLoadMap} />;
+    return <EmptyState handleStartSetup={handleStartSetup} handleLoadMap={handleLoadMap} fileInputRef={fileInputRef} />;
   }
 
   return (

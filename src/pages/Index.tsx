@@ -16,11 +16,10 @@ const Index = () => {
     // Check if setup has been completed
     const setupCompleted = localStorage.getItem('ecuSetupCompleted');
     
-    if (!setupCompleted) {
-      setActiveTab("settings");
-      toast.info("Welcome! Please complete the setup or load an existing map to continue.", {
-        duration: 5000,
-      });
+    // Don't automatically set to settings tab on first load
+    // Let the EmptyState component handle the navigation choice
+    if (setupCompleted === "true") {
+      setActiveTab("maps");
     }
   }, []);
   
@@ -31,7 +30,7 @@ const Index = () => {
           <TabsList className="mx-4 mt-2 flex-none">
             <TabsTrigger value="maps">Maps</TabsTrigger>
             <TabsTrigger value="datalog">Datalog</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="settings" data-value="settings">Settings</TabsTrigger>
           </TabsList>
           
           <TabsContent value="maps" className="h-[calc(100%-40px)] overflow-hidden">

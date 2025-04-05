@@ -45,48 +45,11 @@ const TableView: React.FC<TableViewProps> = ({
   const maxValue = useMemo(() => mapData.length > 0 ? Math.max(...mapData.flat()) : 0, [mapData]);
   const unit = useMemo(() => getMapTypeUnit(mapType), [mapType]);
   
-  // VTEC map stats
-  const vtecMinValue = useMemo(() => 
-    vtecMapData && vtecMapData.length > 0 ? Math.min(...vtecMapData.flat()) : 0, 
-  [vtecMapData]);
-  
-  const vtecMaxValue = useMemo(() => 
-    vtecMapData && vtecMapData.length > 0 ? Math.max(...vtecMapData.flat()) : 0, 
-  [vtecMapData]);
-  
   const getDisplayedLoadValue = (idx: number) => {
     if (!displayedLoad || idx >= displayedLoad.length || displayedLoad[idx] === undefined) {
       return "N/A";
     }
     return displayedLoad[idx].toFixed(0);
-  };
-
-  const renderHighLowLegend = () => {
-    return (
-      <div className="flex justify-between items-center text-xs text-muted-foreground p-2 border-t">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-500 rounded"></div>
-          <span>High: {maxValue.toFixed(1)}{unit}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500 rounded"></div>
-          <span>Low: {minValue.toFixed(1)}{unit}</span>
-        </div>
-        
-        {vtecMapData && (
-          <>
-            <div className="flex items-center gap-2 ml-6">
-              <div className="w-4 h-4 bg-red-700 rounded"></div>
-              <span>VTEC High: {vtecMaxValue.toFixed(1)}{unit}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-700 rounded"></div>
-              <span>VTEC Low: {vtecMinValue.toFixed(1)}{unit}</span>
-            </div>
-          </>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -126,8 +89,8 @@ const TableView: React.FC<TableViewProps> = ({
                   return (
                     <td 
                       key={colIdx} 
-                      className={`relative border border-border/30 p-1 text-center cursor-pointer transition-colors
-                        ${isSelected ? 'bg-blue-600 text-white' : cellColorClass}`}
+                      className={`relative border border-honda-gray p-1 text-center cursor-pointer transition-colors
+                        ${isSelected ? 'grid-highlight' : cellColorClass}`}
                       onClick={(e) => onCellClick(rowIdx, colIdx, e.ctrlKey || e.metaKey)}
                     >
                       <div className="flex flex-col">
@@ -147,8 +110,6 @@ const TableView: React.FC<TableViewProps> = ({
           </tbody>
         </table>
       </div>
-      
-      {renderHighLowLegend()}
     </div>
   );
 };
