@@ -343,8 +343,10 @@ export const handleSaveMap = (mapType: string, rpm: number[], displayedLoad: num
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  
+  // Fix: Pass the Save icon as a function instead of JSX
   toast.success(`${mapType} map saved successfully!`, {
-    icon: <Save size={16} />,
+    icon: Save,
   });
 };
 
@@ -517,11 +519,13 @@ export const toggleSelectionMode = (selectionMode: boolean, setSelectionMode: (m
   if (!selectionMode) {
     toast.info("Multi-select mode enabled. Click and drag to select multiple cells.", {
       duration: 3000,
-      icon: <MousePointer size={16} />,
+      // Fix: Pass the MousePointer icon as a function instead of JSX
+      icon: MousePointer,
     });
   } else {
     toast.info("Multi-select mode disabled.", {
-      icon: <X size={16} />,
+      // Fix: Pass the X icon as a function instead of JSX
+      icon: X,
     });
     setSelectedCells([]);
   }
