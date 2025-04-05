@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { MousePointer, X, Save } from "lucide-react";
 
@@ -136,14 +135,12 @@ export const generateBaseMap = (settings: any, mapType: string, pressureUnit: 'b
   const engine = settings.engine || 'b16a';
   const isVtec = engine.includes('vtec') || ['b16a', 'b18c', 'k20a'].includes(engine);
   
-  // More realistic RPM range
   const maxRpm = isVtec ? 9200 : 7600;
   const rpmStep = 400;
   for (let rpm = 800; rpm <= maxRpm; rpm += rpmStep) {
     rpmRange.push(rpm);
   }
   
-  // More realistic load range (kPa)
   const loadStep = 10;
   const maxLoad = 100;
   for (let load = 20; load <= maxLoad; load += loadStep) {
@@ -157,150 +154,103 @@ export const generateBaseMap = (settings: any, mapType: string, pressureUnit: 'b
       let value = 0;
       
       if (mapType === MAP_TYPES.FUEL) {
-        // Realistic base fuel map values (in ms)
         const normalizedLoad = loadRange[i] / maxLoad;
         const normalizedRpm = rpmRange[j] / maxRpm;
         
-        // Base fuel at idle is around 2.5-3.5ms for most engines
         const baseFuel = 3.0;
         
-        // Increase with load, modified by RPM
         if (normalizedRpm < 0.15) {
-          // Idle region
           value = baseFuel * (0.8 + normalizedLoad * 0.5);
         } else if (normalizedRpm < 0.4) {
-          // Low-mid RPM, more sensitive to load
           value = baseFuel * (0.9 + normalizedLoad * 1.5);
         } else if (normalizedRpm < 0.7) {
-          // Mid RPM, efficiency zone
           value = baseFuel * (1.0 + normalizedLoad * 2.0);
         } else {
-          // High RPM, needs more fuel
           value = baseFuel * (1.1 + normalizedLoad * 2.5);
         }
         
-        // VTEC adjustments
         if (isVtec && normalizedRpm > 0.6) {
-          // VTEC engagement typically around 5500 RPM
           const vtecEffect = (normalizedRpm - 0.6) * 1.3;
           value += baseFuel * vtecEffect;
         }
       } 
       else if (mapType === MAP_TYPES.AFR) {
-        // Realistic AFR values
         const normalizedLoad = loadRange[i] / maxLoad;
         const normalizedRpm = rpmRange[j] / maxRpm;
         
-        // Start at stoichiometric (14.7:1)
         let baseAfr = 14.7;
         
-        // Idle and cruise - lean
         if (normalizedLoad < 0.3 && normalizedRpm < 0.4) {
           value = baseAfr + (0.3 - normalizedLoad) * 1.0;
-        }
-        // Partial throttle - near stoichiometric
-        else if (normalizedLoad < 0.6) {
+        } else if (normalizedLoad < 0.6) {
           value = baseAfr;
-        }
-        // High load - richer
-        else {
+        } else {
           value = baseAfr - (normalizedLoad - 0.6) * 4.0;
-          // Even richer at high RPM and load
           if (normalizedRpm > 0.7) {
             value -= (normalizedRpm - 0.7) * 0.8;
           }
         }
         
-        // Clamp to realistic values
         value = Math.max(value, 11.5);
         value = Math.min(value, 15.5);
       }
       else if (mapType === MAP_TYPES.IGNITION) {
-        // Realistic ignition timing values
         const normalizedLoad = loadRange[i] / maxLoad;
         const normalizedRpm = rpmRange[j] / maxRpm;
         
-        // Base timing around 10-12 degrees
         let baseTiming = 10;
         
-        // Low load - more advance
         if (normalizedLoad < 0.4) {
           value = baseTiming + 20 - normalizedLoad * 15;
-        }
-        // Medium load - moderate advance
-        else if (normalizedLoad < 0.7) {
+        } else if (normalizedLoad < 0.7) {
           value = baseTiming + 14 - normalizedLoad * 10;
-        }
-        // High load - reduced advance to prevent knock
-        else {
+        } else {
           value = baseTiming + 7 - normalizedLoad * 10;
         }
         
-        // RPM adjustments
         if (normalizedRpm < 0.2) {
-          // Idle region - less advance
           value -= 2;
         } else if (normalizedRpm > 0.7) {
-          // High RPM - slightly reduced advance
           value -= (normalizedRpm - 0.7) * 5;
         }
         
-        // Clamp to realistic values
         value = Math.max(value, 0);
         value = Math.min(value, 40);
       }
       else if (mapType === MAP_TYPES.INJ_DUTY) {
-        // Realistic injector duty cycle
         const normalizedLoad = loadRange[i] / maxLoad;
         const normalizedRpm = rpmRange[j] / maxRpm;
         
-        // Idle is around 3-10%
         if (normalizedRpm < 0.15) {
           value = 3 + normalizedLoad * 15;
-        }
-        // Cruise is around 10-30%
-        else if (normalizedLoad < 0.5) {
+        } else if (normalizedLoad < 0.5) {
           value = 10 + normalizedLoad * 40;
-        }
-        // Higher loads
-        else {
+        } else {
           value = 30 + normalizedLoad * 65;
         }
         
-        // RPM effect (higher RPM means less time to inject)
         value += normalizedRpm * 20;
         
-        // Clamp to realistic values
-        value = Math.min(value, 95); // Never want 100% duty cycle
+        value = Math.min(value, 95);
       }
       else if (mapType === MAP_TYPES.BOOST) {
-        // Only relevant for boosted engines
         if (settings.turbo || settings.supercharged) {
           const normalizedLoad = loadRange[i] / maxLoad;
           const normalizedRpm = rpmRange[j] / maxRpm;
           
-          // No boost at low RPM
           if (normalizedRpm < 0.3) {
             value = 0;
-          }
-          // Boost builds
-          else {
-            // Base boost based on load
+          } else {
             value = normalizedLoad * 15;
-            
-            // Boost builds with RPM
             value *= (normalizedRpm - 0.3) * 1.4;
-            
-            // Clamp to realistic values
             value = Math.max(value, 0);
-            value = Math.min(value, 20); // 20 PSI is a lot!
+            value = Math.min(value, 20);
           }
         } else {
-          value = 0; // No boost for NA engines
+          value = 0;
         }
       }
       
-      // Add small variations for realism
       const variation = (Math.random() * 0.4) - 0.2;
       value = parseFloat((value + variation).toFixed(1));
       row.push(value);
@@ -344,10 +294,7 @@ export const handleSaveMap = (mapType: string, rpm: number[], displayedLoad: num
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   
-  // Fix: Pass the Save icon as a function instead of JSX
-  toast.success(`${mapType} map saved successfully!`, {
-    icon: Save,
-  });
+  toast.success(`${mapType} map saved successfully!`);
 };
 
 export const getCellAtPosition = (tableRef: React.RefObject<HTMLTableElement>, rpmLength: number, x: number, y: number): { row: number, col: number } | null => {
@@ -519,14 +466,9 @@ export const toggleSelectionMode = (selectionMode: boolean, setSelectionMode: (m
   if (!selectionMode) {
     toast.info("Multi-select mode enabled. Click and drag to select multiple cells.", {
       duration: 3000,
-      // Fix: Pass the MousePointer icon as a function instead of JSX
-      icon: MousePointer,
     });
   } else {
-    toast.info("Multi-select mode disabled.", {
-      // Fix: Pass the X icon as a function instead of JSX
-      icon: X,
-    });
+    toast.info("Multi-select mode disabled.");
     setSelectedCells([]);
   }
 };
