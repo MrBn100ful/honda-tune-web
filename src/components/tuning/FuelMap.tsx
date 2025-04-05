@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from "sonner";
 import FuelMap3D from './FuelMap3D';
@@ -21,6 +22,7 @@ interface FuelMapProps {
 
 const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
   const [isVtec, setIsVtec] = useState(false);
+  const [showVtecMap, setShowVtecMap] = useState(false);
   const [mapType, setMapType] = useState<string>(MAP_TYPES.FUEL);
   const [mapData, setMapData] = useState<number[][]>([]);
   const [vtecMapData, setVtecMapData] = useState<number[][]>([]);
@@ -164,41 +166,43 @@ const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
   };
 
   const adjustValue = (amount: number, isPercentage: boolean = false) => {
-    const newMapData = adjustMapValues(mapData, selectedCells, null, amount, isPercentage);
-    setMapData(newMapData);
+    const currentMapData = showVtecMap && isVtec ? vtecMapData : mapData;
+    const newMapData = adjustMapValues(currentMapData, selectedCells, null, amount, isPercentage);
     
-    if (isVtec && vtecMapData.length > 0) {
-      const newVtecMapData = adjustMapValues(vtecMapData, selectedCells, null, amount, isPercentage);
-      setVtecMapData(newVtecMapData);
+    if (showVtecMap && isVtec) {
+      setVtecMapData(newMapData);
+    } else {
+      setMapData(newMapData);
     }
   };
 
   const setExactValue = (value: number) => {
+    // This function is left for future implementation
   };
 
   const handleInterpolateMap = () => {
-    const newMapData = interpolate(mapData, selectedCells);
-    setMapData(newMapData);
+    const currentMapData = showVtecMap && isVtec ? vtecMapData : mapData;
+    const newMapData = interpolate(currentMapData, selectedCells);
     
-    if (isVtec && vtecMapData.length > 0) {
-      const newVtecMapData = interpolate(vtecMapData, selectedCells);
-      setVtecMapData(newVtecMapData);
+    if (showVtecMap && isVtec) {
+      setVtecMapData(newMapData);
+    } else {
+      setMapData(newMapData);
     }
   };
 
   const handleGenerateMapReport = () => {
-    generateReport(mapData, mapType, rpm, displayedLoad, isVtec, pressureUnit);
+    const currentMapData = showVtecMap && isVtec ? vtecMapData : mapData;
+    const currentMapType = showVtecMap && isVtec ? `${mapType} VTEC` : mapType;
     
-    if (isVtec && vtecMapData.length > 0) {
-      generateReport(vtecMapData, `${mapType} VTEC`, rpm, displayedLoad, isVtec, pressureUnit);
-    }
+    generateReport(currentMapData, currentMapType, rpm, displayedLoad, isVtec, pressureUnit);
   };
 
   const handleSaveMap = () => {
-    saveMap(mapType, rpm, displayedLoad, mapData, isVtec, pressureUnit);
-    
-    if (isVtec && vtecMapData.length > 0) {
+    if (showVtecMap && isVtec) {
       saveMap(`${mapType} VTEC`, rpm, displayedLoad, vtecMapData, isVtec, pressureUnit);
+    } else {
+      saveMap(mapType, rpm, displayedLoad, mapData, isVtec, pressureUnit);
     }
   };
 
@@ -243,6 +247,24 @@ const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
     }
   };
 
+  const toggleVtecMap = () => {
+    if (isVtec) {
+      setShowVtecMap(!showVtecMap);
+      if (showVtecMap) {
+        toast.info("Showing standard map");
+      } else {
+        toast.info("Showing VTEC map");
+      }
+    } else {
+      toast.info("VTEC is not enabled for this engine");
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedCells([]);
+    toast.info("Selection cleared");
+  };
+
   if (showEmptyState) {
     return (
       <EmptyState 
@@ -266,6 +288,10 @@ const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
         generateMapReport={handleGenerateMapReport}
         handleSaveMap={handleSaveMap}
         onLoadClick={handleLoadMapClick}
+        clearSelection={clearSelection}
+        isVtec={isVtec}
+        showVtecMap={showVtecMap}
+        toggleVtecMap={toggleVtecMap}
       />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -288,13 +314,14 @@ const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
             onMouseUp={handleMouseUp}
             tableRef={tableRef}
             vtecMapData={isVtec ? vtecMapData : undefined}
+            showVtecMap={showVtecMap}
           />
         </div>
         
         <div className="h-1/3 p-2" ref={chartContainerRef}>
           <div className="w-full h-full bg-card rounded-lg overflow-hidden">
             <FuelMap3D 
-              mapData={mapData} 
+              mapData={showVtecMap && isVtec ? vtecMapData : mapData} 
               rpm={rpm} 
               load={load}
               mapType={mapType}

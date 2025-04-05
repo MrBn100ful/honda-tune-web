@@ -20,6 +20,7 @@ interface TableViewProps {
   onMouseUp: () => void;
   tableRef: React.RefObject<HTMLTableElement>;
   vtecMapData?: number[][];
+  showVtecMap: boolean;
 }
 
 const TableView: React.FC<TableViewProps> = ({
@@ -39,7 +40,8 @@ const TableView: React.FC<TableViewProps> = ({
   onMouseMove,
   onMouseUp,
   tableRef,
-  vtecMapData
+  vtecMapData,
+  showVtecMap
 }) => {
   const minValue = useMemo(() => mapData.length > 0 ? Math.min(...mapData.flat()) : 0, [mapData]);
   const maxValue = useMemo(() => mapData.length > 0 ? Math.max(...mapData.flat()) : 0, [mapData]);
@@ -51,6 +53,8 @@ const TableView: React.FC<TableViewProps> = ({
     }
     return displayedLoad[idx].toFixed(0);
   };
+
+  const displayData = showVtecMap && vtecMapData ? vtecMapData : mapData;
 
   return (
     <div className="relative h-full w-full overflow-auto flex flex-col">
@@ -76,31 +80,37 @@ const TableView: React.FC<TableViewProps> = ({
             </tr>
           </thead>
           <tbody>
-            {mapData.map((row, rowIdx) => (
+            {displayData.map((row, rowIdx) => (
               <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-card/50' : 'bg-card/25'}>
                 <td className="border-r p-2 text-center font-medium sticky left-0 bg-card text-muted-foreground">
                   {getDisplayedLoadValue(rowIdx)} {pressureUnit}
                 </td>
                 {row.map((cell, colIdx) => {
                   const isSelected = selectedCells.some(s => s.row === rowIdx && s.col === colIdx);
-                  const cellColorClass = getCellColorClass(cell, mapType, minValue, maxValue);
-                  const vtecValue = vtecMapData?.[rowIdx]?.[colIdx];
+                  let cellClass;
+                  
+                  // Use original color scheme
+                  if (cell < minValue + (maxValue - minValue) * 0.2) {
+                    cellClass = "cell-value-low";
+                  } else if (cell < minValue + (maxValue - minValue) * 0.4) {
+                    cellClass = "cell-value-low-mid";
+                  } else if (cell < minValue + (maxValue - minValue) * 0.6) {
+                    cellClass = "cell-value-mid";
+                  } else if (cell < minValue + (maxValue - minValue) * 0.8) {
+                    cellClass = "cell-value-mid-high";
+                  } else {
+                    cellClass = "cell-value-high";
+                  }
                   
                   return (
                     <td 
                       key={colIdx} 
                       className={`relative border border-honda-gray p-1 text-center cursor-pointer transition-colors
-                        ${isSelected ? 'grid-highlight' : cellColorClass}`}
+                        ${isSelected ? 'grid-highlight' : cellClass}`}
                       onClick={(e) => onCellClick(rowIdx, colIdx, e.ctrlKey || e.metaKey)}
                     >
-                      <div className="flex flex-col">
+                      <div>
                         <span>{cell.toFixed(1)}</span>
-                        
-                        {vtecMapData && vtecValue !== undefined && (
-                          <span className="text-[10px] text-blue-400 mt-1">
-                            {vtecValue.toFixed(1)}
-                          </span>
-                        )}
                       </div>
                     </td>
                   );

@@ -3,7 +3,7 @@ import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, MinusCircle, Percent, LucideBox, Info, Save, Upload } from "lucide-react";
+import { PlusCircle, MinusCircle, Percent, LucideBox, Info, Save, Upload, X, Power } from "lucide-react";
 import { MAP_TYPES } from './utils/mapUtils';
 
 interface MapControlsProps {
@@ -17,6 +17,10 @@ interface MapControlsProps {
   generateMapReport: () => void;
   handleSaveMap: () => void;
   onLoadClick: () => void;
+  clearSelection?: () => void;
+  isVtec?: boolean;
+  showVtecMap?: boolean;
+  toggleVtecMap?: () => void;
 }
 
 const MapControls: React.FC<MapControlsProps> = ({
@@ -29,7 +33,11 @@ const MapControls: React.FC<MapControlsProps> = ({
   interpolateMap,
   generateMapReport,
   handleSaveMap,
-  onLoadClick
+  onLoadClick,
+  clearSelection,
+  isVtec,
+  showVtecMap,
+  toggleVtecMap
 }) => {
   return (
     <div className="bg-card p-2 border-b flex flex-wrap items-center justify-between gap-2">
@@ -52,6 +60,19 @@ const MapControls: React.FC<MapControlsProps> = ({
             <span>{selectedCellsCount} cells selected</span>
           )}
         </div>
+        
+        {isVtec && toggleVtecMap && (
+          <Button
+            variant={showVtecMap ? "honda" : "outline"}
+            size="sm"
+            onClick={toggleVtecMap}
+            className="h-9"
+            title={showVtecMap ? "Show standard map" : "Show VTEC map"}
+          >
+            <Power size={16} className="mr-1" />
+            {showVtecMap ? "VTEC" : "Normal"}
+          </Button>
+        )}
       </div>
       
       <div className="flex items-center space-x-2">
@@ -96,6 +117,19 @@ const MapControls: React.FC<MapControlsProps> = ({
                 +{percentageAdjustment}%
               </Button>
             </div>
+            
+            {clearSelection && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearSelection}
+                className="h-9"
+                title="Clear selection"
+              >
+                <X size={16} className="mr-1" />
+                Clear
+              </Button>
+            )}
             
             <div className="hidden md:flex items-center">
               <span className="text-sm text-muted-foreground mr-1">Incr:</span>
