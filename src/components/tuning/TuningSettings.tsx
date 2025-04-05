@@ -712,7 +712,7 @@ const TuningSettings = () => {
           
           {hasCompletedSetup && (
             <Tabs defaultValue="engine">
-              <TabsList>
+              <TabsList className="mb-4 border-b w-full flex overflow-x-auto">
                 <TabsTrigger value="engine">Engine Setup</TabsTrigger>
                 <TabsTrigger value="transmission">Transmission</TabsTrigger>
                 <TabsTrigger value="fuel">Fuel</TabsTrigger>
@@ -821,27 +821,417 @@ const TuningSettings = () => {
               </TabsContent>
               
               <TabsContent value="transmission" className="pt-4">
-                {/* Transmission content */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="transmission-type" className="text-honda-light">Transmission Type</Label>
+                      <Select value={transmissionType} onValueChange={setTransmissionType}>
+                        <SelectTrigger id="transmission-type" className="bg-honda-gray border-honda-gray">
+                          <SelectValue placeholder="Select Transmission Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TRANSMISSIONS.map(trans => (
+                            <SelectItem key={trans.code} value={trans.code}>
+                              <div className="flex items-center">
+                                <Gauge className="mr-2 h-4 w-4" />
+                                <span>{trans.type} ({trans.gearRatios.length}-Speed)</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {selectedTransmission && (
+                      <div className="rounded-md border border-honda-gray p-4">
+                        <h3 className="text-sm font-medium text-honda-light mb-2">Transmission Specs</h3>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {selectedTransmission.gearRatios.map((ratio, idx) => (
+                            <React.Fragment key={idx}>
+                              <div className="text-honda-light/70">Gear {idx + 1}:</div>
+                              <div className="text-honda-light font-medium">{ratio.toFixed(2)}:1</div>
+                            </React.Fragment>
+                          ))}
+                          <div className="text-honda-light/70">Final Drive:</div>
+                          <div className="text-honda-light font-medium">{selectedTransmission.finalDrive.toFixed(2)}:1</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="fuel" className="pt-4">
-                {/* Fuel content */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div>
+                      <Label htmlFor="target-afr-cruise" className="text-honda-light">Target AFR (Cruise)</Label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[targetAfrCruise]}
+                          max={16}
+                          min={13}
+                          step={0.1}
+                          onValueChange={(value) => setTargetAfrCruise(value[0])}
+                          className="flex-1"
+                        />
+                        <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                          {targetAfrCruise.toFixed(1)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="target-afr-wot" className="text-honda-light">Target AFR (WOT)</Label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[targetAfrWot]}
+                          max={14}
+                          min={11}
+                          step={0.1}
+                          onValueChange={(value) => setTargetAfrWot(value[0])}
+                          className="flex-1"
+                        />
+                        <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                          {targetAfrWot.toFixed(1)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="fuel-pressure" className="text-honda-light">Fuel Pressure (bar)</Label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[fuelPressure]}
+                          max={5}
+                          min={2}
+                          step={0.1}
+                          onValueChange={(value) => setFuelPressure(value[0])}
+                          className="flex-1"
+                        />
+                        <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                          {fuelPressure.toFixed(1)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="fuel-type" className="text-honda-light">Fuel Type</Label>
+                      <Select value={fuelType} onValueChange={setFuelType}>
+                        <SelectTrigger id="fuel-type" className="bg-honda-gray border-honda-gray">
+                          <SelectValue placeholder="Select Fuel Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gasoline">Gasoline (91-93 Octane)</SelectItem>
+                          <SelectItem value="e85">E85</SelectItem>
+                          <SelectItem value="race">Racing Fuel (100+ Octane)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="accel-enrichment" 
+                        checked={accelEnrichment}
+                        onCheckedChange={setAccelEnrichment}
+                      />
+                      <Label htmlFor="accel-enrichment" className="text-honda-light">Acceleration Enrichment</Label>
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="ignition" className="pt-4">
-                {/* Ignition content */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div>
+                      <Label htmlFor="base-timing" className="text-honda-light">Base Timing (Degrees)</Label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[baseTiming]}
+                          max={30}
+                          min={8}
+                          step={1}
+                          onValueChange={(value) => setBaseTiming(value[0])}
+                          className="flex-1"
+                        />
+                        <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                          {baseTiming}°
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="knock-retard" className="text-honda-light">Knock Retard (Degrees)</Label>
+                      <div className="flex items-center gap-4">
+                        <Slider
+                          value={[knockRetard]}
+                          max={10}
+                          min={1}
+                          step={0.5}
+                          onValueChange={(value) => setKnockRetard(value[0])}
+                          className="flex-1"
+                        />
+                        <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                          {knockRetard}°
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="knock-detection" 
+                        checked={knockDetection}
+                        onCheckedChange={setKnockDetection}
+                      />
+                      <Label htmlFor="knock-detection" className="text-honda-light">Knock Detection</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="timing-comp" 
+                        checked={timingComp}
+                        onCheckedChange={setTimingComp}
+                      />
+                      <Label htmlFor="timing-comp" className="text-honda-light">IAT Timing Compensation</Label>
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="launch" className="pt-4">
-                {/* Launch Control content */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="launch-control" 
+                        checked={launchControl}
+                        onCheckedChange={setLaunchControl}
+                      />
+                      <Label htmlFor="launch-control" className="text-honda-light">Launch Control</Label>
+                    </div>
+                    
+                    {launchControl && (
+                      <>
+                        <div>
+                          <Label htmlFor="launch-rpm" className="text-honda-light">Launch RPM</Label>
+                          <div className="flex items-center gap-4">
+                            <Slider
+                              value={[launchRpm]}
+                              max={6000}
+                              min={3000}
+                              step={100}
+                              onValueChange={(value) => setLaunchRpm(value[0])}
+                              className="flex-1"
+                            />
+                            <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                              {launchRpm}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="launch-fuel" className="text-honda-light">Fuel Enrichment (%)</Label>
+                          <div className="flex items-center gap-4">
+                            <Slider
+                              value={[launchFuelEnrichment]}
+                              max={25}
+                              min={0}
+                              step={1}
+                              onValueChange={(value) => setLaunchFuelEnrichment(value[0])}
+                              className="flex-1"
+                            />
+                            <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                              {launchFuelEnrichment}%
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="launch-timing" className="text-honda-light">Timing Retard (°)</Label>
+                          <div className="flex items-center gap-4">
+                            <Slider
+                              value={[launchTimingRetard]}
+                              max={15}
+                              min={0}
+                              step={1}
+                              onValueChange={(value) => setLaunchTimingRetard(value[0])}
+                              className="flex-1"
+                            />
+                            <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                              {launchTimingRetard}°
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            id="two-step" 
+                            checked={twoStep}
+                            onCheckedChange={setTwoStep}
+                          />
+                          <Label htmlFor="two-step" className="text-honda-light">Two-Step</Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            id="antilag" 
+                            checked={antilag}
+                            onCheckedChange={setAntilag}
+                          />
+                          <Label htmlFor="antilag" className="text-honda-light">Anti-Lag</Label>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="boost" className="pt-4">
-                {/* Boost Control content */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="boost-by-gear" 
+                        checked={boostByGear}
+                        onCheckedChange={setBoostByGear}
+                      />
+                      <Label htmlFor="boost-by-gear" className="text-honda-light">Boost By Gear</Label>
+                    </div>
+                    
+                    {boostByGear && selectedTransmission && (
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-honda-light">Boost Limits By Gear (bar)</h4>
+                        {selectedTransmission.gearRatios.map((_, idx) => (
+                          <div key={idx}>
+                            <Label htmlFor={`gear-${idx+1}-boost`} className="text-honda-light">Gear {idx+1}</Label>
+                            <div className="flex items-center gap-4">
+                              <Slider
+                                id={`gear-${idx+1}-boost`}
+                                value={[gearBoostLimits[idx] || 0]}
+                                max={1.5}
+                                min={0.3}
+                                step={0.1}
+                                onValueChange={(value) => {
+                                  const newLimits = [...gearBoostLimits];
+                                  newLimits[idx] = value[0];
+                                  setGearBoostLimits(newLimits);
+                                }}
+                                className="flex-1"
+                              />
+                              <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                                {(gearBoostLimits[idx] || 0).toFixed(1)} bar
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="map-sensor" className="text-honda-light">MAP Sensor</Label>
+                      <Select value={mapSensor} onValueChange={setMapSensor}>
+                        <SelectTrigger id="map-sensor" className="bg-honda-gray border-honda-gray">
+                          <SelectValue placeholder="Select MAP Sensor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2bar">2 Bar</SelectItem>
+                          <SelectItem value="3bar">3 Bar</SelectItem>
+                          <SelectItem value="4bar">4 Bar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="popcorn-mode" 
+                        checked={popcornMode}
+                        onCheckedChange={setPopcornMode}
+                      />
+                      <Label htmlFor="popcorn-mode" className="text-honda-light">Popcorn Mode</Label>
+                    </div>
+                    
+                    {popcornMode && (
+                      <div>
+                        <Label htmlFor="popcorn-retard" className="text-honda-light">Popcorn Mode Retard (°)</Label>
+                        <div className="flex items-center gap-4">
+                          <Slider
+                            id="popcorn-retard"
+                            value={[popcornRetard]}
+                            max={20}
+                            min={5}
+                            step={1}
+                            onValueChange={(value) => setPopcornRetard(value[0])}
+                            className="flex-1"
+                          />
+                          <div className="w-16 text-center font-bold bg-honda-gray p-1 rounded text-honda-light">
+                            {popcornRetard}°
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="connection" className="pt-4">
-                {/* Connection content */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-medium text-honda-light mb-4">Input Pins</h3>
+                    <div className="rounded-md border border-honda-gray p-4 mb-4">
+                      <div className="overflow-auto max-h-[300px]">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-honda-gray">
+                              <th className="text-left text-honda-light/70 p-2">Pin</th>
+                              <th className="text-left text-honda-light/70 p-2">Type</th>
+                              <th className="text-left text-honda-light/70 p-2">Usage</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rtpInputs.map((input, idx) => (
+                              <tr key={idx} className="border-b border-honda-gray/30">
+                                <td className="p-2 text-honda-light">{input.pin}</td>
+                                <td className="p-2 text-honda-light">{input.type}</td>
+                                <td className="p-2 text-honda-light">
+                                  {input.usage} <span className="text-xs text-honda-light/60">({input.scaling})</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-honda-light mb-4">Output Pins</h3>
+                    <div className="rounded-md border border-honda-gray p-4 mb-4">
+                      <div className="overflow-auto max-h-[300px]">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-honda-gray">
+                              <th className="text-left text-honda-light/70 p-2">Pin</th>
+                              <th className="text-left text-honda-light/70 p-2">Type</th>
+                              <th className="text-left text-honda-light/70 p-2">Usage</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rtpOutputs.map((output, idx) => (
+                              <tr key={idx} className="border-b border-honda-gray/30">
+                                <td className="p-2 text-honda-light">{output.pin}</td>
+                                <td className="p-2 text-honda-light">{output.type}</td>
+                                <td className="p-2 text-honda-light">
+                                  {output.usage} <span className="text-xs text-honda-light/60">({output.current})</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
           )}

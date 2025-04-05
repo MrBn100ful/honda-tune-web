@@ -293,7 +293,6 @@ export const handleSaveMap = (mapType: string, rpm: number[], displayedLoad: num
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  
   toast.success(`${mapType} map saved successfully!`);
 };
 

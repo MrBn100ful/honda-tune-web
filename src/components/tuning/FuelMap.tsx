@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import FuelMap3D from './FuelMap3D';
 import TableView from './TableView';
@@ -119,7 +118,7 @@ const FuelMap = () => {
   };
   
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0 || !selectionMode) return;
+    if (e.button !== 0) return;
     
     if (!e.ctrlKey && !e.metaKey) {
       setSelectedCells([]);
@@ -246,13 +245,9 @@ const FuelMap = () => {
         onLoadClick={handleLoadMapClick}
       />
       
-      <Tabs defaultValue="table" className="flex-1 overflow-hidden flex flex-col">
-        <TabsList className="mx-2 mt-2">
-          <TabsTrigger value="table">Table</TabsTrigger>
-          <TabsTrigger value="3d">3D View</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="table" className="flex-1 overflow-hidden p-0 m-0">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Table View */}
+        <div className="w-1/2 overflow-auto border-r">
           <TableView 
             rpm={rpm}
             displayedLoad={displayedLoad}
@@ -271,10 +266,11 @@ const FuelMap = () => {
             onMouseUp={handleMouseUp}
             tableRef={tableRef}
           />
-        </TabsContent>
+        </div>
         
-        <TabsContent value="3d" className="flex-1 overflow-hidden p-4">
-          <div ref={chartContainerRef} className="w-full h-full bg-card rounded-lg overflow-hidden">
+        {/* 3D View */}
+        <div className="w-1/2 p-2" ref={chartContainerRef}>
+          <div className="w-full h-full bg-card rounded-lg overflow-hidden">
             <FuelMap3D 
               mapData={mapData} 
               rpm={rpm} 
@@ -282,8 +278,8 @@ const FuelMap = () => {
               mapType={mapType}
             />
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
       
       {/* Hidden file input for map loading */}
       <input
