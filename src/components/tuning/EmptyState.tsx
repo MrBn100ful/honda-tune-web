@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings2, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface EmptyStateProps {
   handleStartSetup: () => void;
@@ -13,6 +14,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({ handleStartSetup, handleLoadMap
   const handleLoadClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    } else {
+      toast.error("File input reference not available");
+      console.error("fileInputRef is not available");
     }
   };
 
@@ -26,7 +30,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ handleStartSetup, handleLoadMap
         
         <div className="flex flex-col space-y-4">
           <Button 
-            variant="default" 
+            variant="honda" 
             size="lg" 
             className="w-full"
             onClick={handleStartSetup}
@@ -44,6 +48,15 @@ const EmptyState: React.FC<EmptyStateProps> = ({ handleStartSetup, handleLoadMap
             <Upload className="mr-2 h-5 w-5" />
             Load Existing Map
           </Button>
+          
+          {/* Hidden file input for map loading */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleLoadMap}
+          />
         </div>
       </div>
     </div>

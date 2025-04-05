@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from "sonner";
 import FuelMap3D from './FuelMap3D';
@@ -16,7 +15,11 @@ import {
   generateMapReport as generateReport
 } from './utils/mapUtils';
 
-const FuelMap = () => {
+interface FuelMapProps {
+  onStartSetup?: () => void;
+}
+
+const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
   const [isVtec, setIsVtec] = useState(false);
   const [mapType, setMapType] = useState<string>(MAP_TYPES.FUEL);
   const [mapData, setMapData] = useState<number[][]>([]);
@@ -35,17 +38,15 @@ const FuelMap = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   
-  // Initialize on load
   useEffect(() => {
     const setupCompleted = localStorage.getItem('ecuSetupCompleted');
     
-    // Always show empty state on first load, regardless of setup status
-    setShowEmptyState(true);
-    
-    if (setupCompleted) {
+    if (setupCompleted === "true") {
+      setShowEmptyState(false);
       const ecuSettings = JSON.parse(localStorage.getItem('ecuSettings') || '{}');
       initializeMapFromSettings(ecuSettings);
     } else {
+      setShowEmptyState(true);
       setRpm([]);
       setLoad([]);
       setMapData([]);
@@ -54,7 +55,6 @@ const FuelMap = () => {
     }
   }, []);
 
-  // Prevent wheel scrolling in 3D view
   useEffect(() => {
     const currentRef = chartContainerRef.current;
     
@@ -84,28 +84,32 @@ const FuelMap = () => {
     setIsVtec(vtec);
     setDisplayedLoad(newDisplayedLoad);
     
-    // Generate VTEC map if the engine has VTEC
     if (vtec) {
-      // Create a slightly modified version for VTEC
       const vtecData = newMapData.map(row => 
         row.map(cell => cell * 1.15 + (Math.random() * 0.5))
       );
       setVtecMapData(vtecData);
     }
   };
-  
+
   const handleStartSetup = () => {
     localStorage.removeItem('ecuSetupCompleted');
-    window.location.href = '#settings';
-    document.querySelector('[data-value="settings"]')?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true })
-    );
+    
+    if (onStartSetup) {
+      onStartSetup();
+    } else {
+      window.location.href = '#settings';
+      document.querySelector('[data-value="settings"]')?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+    }
+    
+    toast.info("Please configure your ECU settings");
   };
-  
+
   const handleCellClick = (row: number, col: number, isMultiSelect: boolean = false) => {
     if (isDragging) return;
     
-    // If negative indices, clear selection
     if (row < 0 || col < 0) {
       setSelectedCells([]);
       return;
@@ -124,7 +128,7 @@ const FuelMap = () => {
       }
     }
   };
-  
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     
@@ -134,12 +138,12 @@ const FuelMap = () => {
     
     e.preventDefault();
   };
-  
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     setDragEnd({ x: e.clientX, y: e.clientY });
   };
-  
+
   const handleMouseUp = () => {
     if (!isDragging || !dragStart || !dragEnd) {
       setIsDragging(false);
@@ -158,22 +162,20 @@ const FuelMap = () => {
     setDragStart(null);
     setDragEnd(null);
   };
-  
+
   const adjustValue = (amount: number, isPercentage: boolean = false) => {
     const newMapData = adjustMapValues(mapData, selectedCells, null, amount, isPercentage);
     setMapData(newMapData);
     
-    // Also adjust VTEC map if applicable
     if (isVtec && vtecMapData.length > 0) {
       const newVtecMapData = adjustMapValues(vtecMapData, selectedCells, null, amount, isPercentage);
       setVtecMapData(newVtecMapData);
     }
   };
-  
+
   const setExactValue = (value: number) => {
-    // This function is no longer used since we removed direct editing
   };
-  
+
   const handleInterpolateMap = () => {
     const newMapData = interpolate(mapData, selectedCells);
     setMapData(newMapData);
@@ -183,7 +185,7 @@ const FuelMap = () => {
       setVtecMapData(newVtecMapData);
     }
   };
-  
+
   const handleGenerateMapReport = () => {
     generateReport(mapData, mapType, rpm, displayedLoad, isVtec, pressureUnit);
     
@@ -191,7 +193,7 @@ const FuelMap = () => {
       generateReport(vtecMapData, `${mapType} VTEC`, rpm, displayedLoad, isVtec, pressureUnit);
     }
   };
-  
+
   const handleSaveMap = () => {
     saveMap(mapType, rpm, displayedLoad, mapData, isVtec, pressureUnit);
     
@@ -203,19 +205,25 @@ const FuelMap = () => {
   const handleLoadMapClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    } else {
+      toast.error("File input reference not available");
+      console.error("fileInputRef is not available");
     }
   };
-  
+
   const handleLoadMap = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      toast.error("No file selected");
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const mapData = JSON.parse(e.target?.result as string);
-        setIsVtec(mapData.vtecEnabled);
-        setMapData(mapData.data);
+        setIsVtec(mapData.vtecEnabled || false);
+        setMapData(mapData.data || []);
         setRpm(mapData.rpm || rpm);
         setLoad(mapData.load || load);
         setDisplayedLoad(mapData.load || load);
@@ -230,14 +238,19 @@ const FuelMap = () => {
     };
     reader.readAsText(file);
     
-    // Clear the input value so the same file can be selected again
     if (event.target) {
       event.target.value = '';
     }
   };
-  
+
   if (showEmptyState) {
-    return <EmptyState handleStartSetup={handleStartSetup} handleLoadMap={handleLoadMap} fileInputRef={fileInputRef} />;
+    return (
+      <EmptyState 
+        handleStartSetup={handleStartSetup} 
+        handleLoadMap={handleLoadMap} 
+        fileInputRef={fileInputRef} 
+      />
+    );
   }
 
   return (
@@ -256,7 +269,6 @@ const FuelMap = () => {
       />
       
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Table View */}
         <div className="h-2/3 overflow-auto border-b">
           <TableView 
             rpm={rpm}
@@ -279,7 +291,6 @@ const FuelMap = () => {
           />
         </div>
         
-        {/* 3D View */}
         <div className="h-1/3 p-2" ref={chartContainerRef}>
           <div className="w-full h-full bg-card rounded-lg overflow-hidden">
             <FuelMap3D 
@@ -292,7 +303,6 @@ const FuelMap = () => {
         </div>
       </div>
       
-      {/* Hidden file input for map loading */}
       <input
         ref={fileInputRef}
         type="file"
