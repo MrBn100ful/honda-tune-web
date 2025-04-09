@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -136,16 +135,16 @@
   }
   
   .grid-highlight {
-    @apply bg-honda-red/30 border-honda-red shadow-sm;
+    @apply bg-honda-red/50 border-honda-red shadow-sm;
   }
   
-  /* Value-based cell colors */
+  /* Value-based cell colors - Restored original green-to-red color scheme with improved contrast */
   .cell-value-low {
     @apply bg-green-600 text-white;
   }
   
   .cell-value-low-mid {
-    @apply bg-green-400 text-white;
+    @apply bg-green-500 text-white;
   }
   
   .cell-value-mid {
@@ -157,7 +156,7 @@
   }
   
   .cell-value-high {
-    @apply bg-red-500 text-white;
+    @apply bg-red-600 text-white;
   }
 
   /* Menu styles */
@@ -169,20 +168,20 @@
     @apply text-white font-semibold;
   }
   
-  /* Datalog value styles */
+  /* Datalog value styles with improved contrast */
   .datalog-value {
-    @apply text-honda-light font-mono text-sm;
+    @apply text-honda-light font-mono text-sm font-medium;
   }
 
   .datalog-label {
-    @apply text-honda-light/70 text-xs;
+    @apply text-honda-light/80 text-xs font-medium;
   }
 
   .datalog-unit {
-    @apply text-honda-light/50 text-xs;
+    @apply text-honda-light/70 text-xs font-medium;
   }
   
-  /* Add blinking dot animation for connection status */
+  /* Connection status styles */
   .blinking-dot {
     width: 6px;
     height: 6px;
@@ -198,16 +197,16 @@
     100% { opacity: 1; }
   }
 
-  /* Selection styles for drag select */
+  /* Selection styles for drag select with improved visibility */
   .selection-area {
-    background: rgba(46, 115, 252, 0.11);
-    border: 2px solid rgba(98, 155, 255, 0.81);
+    background: rgba(46, 115, 252, 0.15);
+    border: 2px solid rgba(98, 155, 255, 0.9);
     border-radius: 0.1em;
   }
   
   .light-theme .selection-area {
-    background: rgba(46, 115, 252, 0.21);
-    border: 2px solid rgba(98, 155, 255, 0.91);
+    background: rgba(46, 115, 252, 0.25);
+    border: 2px solid rgba(98, 155, 255, 1);
   }
 }
 
@@ -220,13 +219,12 @@
 .selection-box {
   position: absolute;
   border: 2px dashed #1a81ff;
-  background-color: rgba(66, 135, 245, 0.2);
+  background-color: rgba(66, 135, 245, 0.25);
   pointer-events: none;
   z-index: 10;
 }
 
 .light-theme .selection-box {
   border: 2px dashed #0062cc;
-  background-color: rgba(66, 135, 245, 0.3);
+  background-color: rgba(66, 135, 245, 0.35);
 }
-

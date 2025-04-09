@@ -1,6 +1,7 @@
 
 import React, { useRef, useMemo } from 'react';
 import { getCellColorClass, getSelectionBoxStyle, getMapTypeUnit } from './utils/mapUtils';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 interface TableViewProps {
   rpm: number[];
@@ -71,9 +72,9 @@ const TableView: React.FC<TableViewProps> = ({
         <table ref={tableRef} className="min-w-full border-collapse text-sm">
           <thead>
             <tr className="bg-card sticky top-0 z-10">
-              <th className="border-b p-2 text-muted-foreground font-medium text-center">{mapType} / RPM</th>
+              <th className="border-b p-2 text-foreground font-semibold text-center">{mapType} / RPM</th>
               {rpm.map((r, idx) => (
-                <th key={idx} className="border-b p-2 text-muted-foreground font-medium text-center sticky top-0 bg-card">
+                <th key={idx} className="border-b p-2 text-foreground font-semibold text-center sticky top-0 bg-card">
                   {r}
                 </th>
               ))}
@@ -81,26 +82,13 @@ const TableView: React.FC<TableViewProps> = ({
           </thead>
           <tbody>
             {displayData.map((row, rowIdx) => (
-              <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-card/50' : 'bg-card/25'}>
-                <td className="border-r p-2 text-center font-medium sticky left-0 bg-card text-muted-foreground">
+              <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-card/60' : 'bg-card/40'}>
+                <td className="border-r p-2 text-center font-medium sticky left-0 bg-card text-foreground">
                   {getDisplayedLoadValue(rowIdx)} {pressureUnit}
                 </td>
                 {row.map((cell, colIdx) => {
                   const isSelected = selectedCells.some(s => s.row === rowIdx && s.col === colIdx);
-                  let cellClass;
-                  
-                  // Use original color scheme
-                  if (cell < minValue + (maxValue - minValue) * 0.2) {
-                    cellClass = "cell-value-low";
-                  } else if (cell < minValue + (maxValue - minValue) * 0.4) {
-                    cellClass = "cell-value-low-mid";
-                  } else if (cell < minValue + (maxValue - minValue) * 0.6) {
-                    cellClass = "cell-value-mid";
-                  } else if (cell < minValue + (maxValue - minValue) * 0.8) {
-                    cellClass = "cell-value-mid-high";
-                  } else {
-                    cellClass = "cell-value-high";
-                  }
+                  const cellClass = getCellColorClass(cell, minValue, maxValue);
                   
                   return (
                     <td 
@@ -110,7 +98,9 @@ const TableView: React.FC<TableViewProps> = ({
                       onClick={(e) => onCellClick(rowIdx, colIdx, e.ctrlKey || e.metaKey)}
                     >
                       <div>
-                        <span>{cell.toFixed(1)}</span>
+                        <span className={cellClass === 'cell-value-mid' ? 'text-black font-medium' : 'text-white font-medium'}>
+                          {cell.toFixed(1)}
+                        </span>
                       </div>
                     </td>
                   );

@@ -8,12 +8,12 @@ import EmptyState from './EmptyState';
 import { 
   MAP_TYPES, 
   generateBaseMap, 
-  handleSaveMap as saveMap, 
+  handleSaveMap, 
   getCellAtPosition, 
   selectCellsInRange, 
   adjustMapValues, 
-  interpolateMap as interpolate,
-  generateMapReport as generateReport
+  interpolateMap,
+  generateMapReport
 } from './utils/mapUtils';
 
 interface FuelMapProps {
@@ -87,9 +87,35 @@ const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
     setDisplayedLoad(newDisplayedLoad);
     
     if (vtec) {
-      const vtecData = newMapData.map(row => 
-        row.map(cell => cell * 1.15 + (Math.random() * 0.5))
-      );
+      // Create different values for VTEC map
+      let vtecData;
+      
+      if (mapType === MAP_TYPES.FUEL) {
+        // Fuel maps: VTEC gives more fuel at higher RPM
+        vtecData = newMapData.map((row, rowIndex) => 
+          row.map((cell, colIndex) => {
+            // More pronounced increase at higher RPMs
+            const rpmFactor = colIndex / row.length;
+            const increase = 1.15 + (rpmFactor * 0.2); // 15-35% more
+            return cell * increase + (Math.random() * 0.5);
+          })
+        );
+      } else if (mapType === MAP_TYPES.IGNITION) {
+        // Ignition maps: VTEC gives more advance at higher RPM
+        vtecData = newMapData.map((row, rowIndex) => 
+          row.map((cell, colIndex) => {
+            // More pronounced advance at higher RPMs
+            const rpmFactor = colIndex / row.length;
+            return cell + (5 * rpmFactor) + (Math.random() * 0.5); // Up to 5 degrees more advance
+          })
+        );
+      } else {
+        // Default behavior for other map types
+        vtecData = newMapData.map(row => 
+          row.map(cell => cell * 1.15 + (Math.random() * 0.5))
+        );
+      }
+      
       setVtecMapData(vtecData);
     }
   };
@@ -182,7 +208,7 @@ const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
 
   const handleInterpolateMap = () => {
     const currentMapData = showVtecMap && isVtec ? vtecMapData : mapData;
-    const newMapData = interpolate(currentMapData, selectedCells);
+    const newMapData = interpolateMap(currentMapData, selectedCells);
     
     if (showVtecMap && isVtec) {
       setVtecMapData(newMapData);
@@ -195,14 +221,14 @@ const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
     const currentMapData = showVtecMap && isVtec ? vtecMapData : mapData;
     const currentMapType = showVtecMap && isVtec ? `${mapType} VTEC` : mapType;
     
-    generateReport(currentMapData, currentMapType, rpm, displayedLoad, isVtec, pressureUnit);
+    generateMapReport(currentMapData, currentMapType, rpm, displayedLoad, isVtec, pressureUnit);
   };
 
   const handleSaveMap = () => {
     if (showVtecMap && isVtec) {
-      saveMap(`${mapType} VTEC`, rpm, displayedLoad, vtecMapData, isVtec, pressureUnit);
+      handleSaveMap(`${mapType} VTEC`, rpm, displayedLoad, vtecMapData, isVtec, pressureUnit);
     } else {
-      saveMap(mapType, rpm, displayedLoad, mapData, isVtec, pressureUnit);
+      handleSaveMap(mapType, rpm, displayedLoad, mapData, isVtec, pressureUnit);
     }
   };
 
@@ -234,6 +260,16 @@ const FuelMap: React.FC<FuelMapProps> = ({ onStartSetup }) => {
         if (mapData.mapType) setMapType(mapData.mapType);
         if (mapData.pressureUnit) setPressureUnit(mapData.pressureUnit as 'bar' | 'kPa');
         setShowEmptyState(false);
+        
+        // Generate VTEC map if VTEC is enabled
+        if (mapData.vtecEnabled) {
+          // Create a VTEC variation of the map
+          const vtecData = mapData.data.map((row: number[]) => 
+            row.map((cell: number) => cell * 1.15 + (Math.random() * 0.5))
+          );
+          setVtecMapData(vtecData);
+        }
+        
         toast.success("Map loaded successfully!");
       } catch (error) {
         console.error('Error loading map:', error);
